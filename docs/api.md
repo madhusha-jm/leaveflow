@@ -183,10 +183,10 @@ The code in `server/` is a deliberate subset of this contract. Differences, all 
 
 | v1 contract | v0 today |
 |---|---|
-| Identity from the JWT | No auth; caller sends `user_id` / `decided_by` in the body |
-| `cancel` is a PATCH action | `DELETE /leave-requests/:id` sets status `CANCELLED` |
+| Identity from the JWT | No auth; caller sends `user_id` (create, cancel) / `decided_by` (approve, reject) in the body |
 | Leave types, balances, overlap check | Not implemented; no `leave_type_id` |
 | `/auth/login`, `/me`, `/balances`, `/team/requests` | Not implemented |
 
 v0 does implement: `GET /health`, list with `?status=` filter, create with date/30-day validation,
-approve/reject with the PENDING-only guard (409), and the error envelope above.
+approve/reject/cancel as PATCH actions with the PENDING-only guard (409) and an owner-only cancel (403),
+and the error envelope above.

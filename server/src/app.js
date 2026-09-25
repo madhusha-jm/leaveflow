@@ -71,35 +71,38 @@ app.post('/api/leave-requests', (req, res, next) => {
   res.status(201).json(findRequest(result.lastInsertRowid));
 });
 
-// Decide: PENDING -> APPROVED | REJECTED. Anything else is a 409.
-app.patch('/api/leave-requests/:id', (req, res, next) => {
-  const { action, decided_by } = req.body || {};
-  if (action !== 'approve' && action !== 'reject') {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'action must be "approve" or "reject"'));
-  }
-  const row = findRequest(req.params.id);
-  if (!row) return next(httpError(404, 'NOT_FOUND', 'no such leave request'));
-  if (row.status !== 'PENDING') {
-    return next(httpError(409, 'INVALID_STATE', 'request is already ' + row.status));
-  }
-  const status = action === 'approve' ? 'APPROVED' : 'REJECTED';
-  db.prepare(
-    `UPDATE leave_requests SET status = ?, decided_by = ?,
-     decided_at = datetime('now') WHERE id = ?`
-  ).run(status, decided_by || null, req.params.id);
-  res.json(findRequest(req.params.id));
-});
+// One endpoint, three actions — the Phase 2 state machine:
+//   approve/reject: PENDING -> APPROVED | REJECTED (records who decided and when)
+//   cancel:         PENDING -> CANCELLED, owner only
+// Anything not PENDING is final: 409.
+// v0 has no auth, so the caller states who they are (decided_by / user_id);
+// Phase 5 replaces both with the identity from the JWT.
+const ACTIONS = { approve: 'APPROVED', reject: 'REJECTED', cancel: 'CANCELLED' };
 
-// Cancel: PENDING -> CANCELLED. The row is kept, only its status changes.
-app.delete('/api/leave-requests/:id', (req, res, next) => {
+app.patch('/api/leave-requests/:id', (req, res, next) => {
+  const { action, decided_by, user_id } = req.body || {};
+  if (!ACTIONS[action]) {
+    return next(httpError(400, 'VALIDATION_ERROR',
+      'action must be "approve", "reject" or "cancel"'));
+  }
   const row = findRequest(req.params.id);
   if (!row) return next(httpError(404, 'NOT_FOUND', 'no such leave request'));
-  if (row.status !== 'PENDING') {
-    return next(httpError(409, 'INVALID_STATE', 'request is already ' + row.status));
+  if (action === 'cancel' && Number(user_id) !== row.user_id) {
+    return next(httpError(403, 'FORBIDDEN', 'only the owner can cancel a request'));
   }
-  db.prepare("UPDATE leave_requests SET status = 'CANCELLED' WHERE id = ?")
-    .run(req.params.id);
+  if (row.status !== 'PENDING') {
+    return next(httpError(409, 'INVALID_STATE',
+      `cannot ${action} a request that is already ${row.status}`));
+  }
+  if (action === 'cancel') {
+    db.prepare('UPDATE leave_requests SET status = ? WHERE id = ?')
+      .run(ACTIONS.cancel, req.params.id);
+  } else {
+    db.prepare(
+      `UPDATE leave_requests SET status = ?, decided_by = ?,
+       decided_at = datetime('now') WHERE id = ?`
+    ).run(ACTIONS[action], decided_by || null, req.params.id);
+  }
   res.json(findRequest(req.params.id));
 });
 

@@ -25,7 +25,7 @@ function findRequest(id) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', version: '0.4.0' });
 });
 
 // List requests, optionally filtered: GET /api/leave-requests?status=PENDING

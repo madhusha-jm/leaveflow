@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { prettyDate, todayIso, workingDays } from '../dates.js';
+import { prettyDate } from '../dates.js';
+import ApplyLeaveForm from '../components/ApplyLeaveForm.jsx';
 import StatusBadge from './StatusBadge.jsx';
 
 // US-3 balances, US-1/US-2 apply, US-5 my requests, US-6 cancel.
@@ -23,6 +24,12 @@ export default function MyLeave({ user }) {
 
   useEffect(() => { load(); }, [load]);
 
+  async function apply(payload) {
+    const created = await api('/leave-requests', { method: 'POST', body: payload });
+    await load(); // balances now show the new pending days
+    return created;
+  }
+
   return (
     <>
       {loadError && <p className="error" role="alert">{loadError}</p>}
@@ -42,91 +49,16 @@ export default function MyLeave({ user }) {
         </div>
       </section>
 
-      <ApplyForm balances={balances} onCreated={load} />
+      <section>
+        <h2>Apply for leave</h2>
+        <ApplyLeaveForm balances={balances} onSubmit={apply} />
+      </section>
 
       <section>
         <h2>My requests</h2>
         <RequestList requests={requests} onChanged={load} />
       </section>
     </>
-  );
-}
-
-function ApplyForm({ balances, onCreated }) {
-  const empty = { leave_type_id: '', start_date: '', end_date: '', reason: '' };
-  const [form, setForm] = useState(empty);
-  const [error, setError] = useState('');
-  const [done, setDone] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-  const days = workingDays(form.start_date, form.end_date);
-  const chosen = balances.find((b) => b.leave_type_id === Number(form.leave_type_id));
-
-  async function submit(e) {
-    e.preventDefault();
-    setError('');
-    setDone('');
-    setBusy(true);
-    try {
-      const created = await api('/leave-requests', {
-        method: 'POST',
-        body: { ...form, leave_type_id: Number(form.leave_type_id) },
-      });
-      setDone(`Request #${created.id} sent for ${created.days} day(s) — waiting for approval.`);
-      setForm(empty);
-      await onCreated();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section>
-      <h2>Apply for leave</h2>
-      <form className="card apply" onSubmit={submit}>
-        <label>
-          Leave type
-          <select value={form.leave_type_id} onChange={set('leave_type_id')} required>
-            <option value="" disabled>Choose…</option>
-            {balances.map((b) => (
-              <option key={b.leave_type_id} value={b.leave_type_id}>
-                {b.name} ({b.available} available)
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="row">
-          <label>
-            From
-            <input type="date" value={form.start_date} min={todayIso()}
-              onChange={set('start_date')} required />
-          </label>
-          <label>
-            To
-            <input type="date" value={form.end_date} min={form.start_date || todayIso()}
-              onChange={set('end_date')} required />
-          </label>
-        </div>
-        <label>
-          Reason <span className="muted small">(optional)</span>
-          <textarea rows="2" value={form.reason} onChange={set('reason')} maxLength={500} />
-        </label>
-        {form.start_date && form.end_date && (
-          <p className={chosen && days > chosen.available ? 'error' : 'muted'}>
-            {days} working day(s)
-            {chosen && ` · ${chosen.available} ${chosen.name} day(s) available`}
-          </p>
-        )}
-        {error && <p className="error" role="alert">{error}</p>}
-        {done && <p className="success" role="status">{done}</p>}
-        <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Sending…' : 'Submit request'}
-        </button>
-      </form>
-    </section>
   );
 }
 

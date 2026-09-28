@@ -37,6 +37,9 @@ npm run dev
 ```bash
 cd server
 npm test        # 53 tests: unit (leaveDays) + API (Supertest)
+
+cd ../client
+npm test        # React component tests (Vitest + Testing Library)
 ```
 
 The API tests use a separate database, `leaveflow_test`, on the same Postgres as your

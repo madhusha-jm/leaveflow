@@ -24,30 +24,36 @@ Known holidays in this range: **Mon 26 Oct** (Vap Poya), **Tue 24 Nov** (Il Poya
 
 Run on: ____________ (date) · Tester: ____________ · Browser: ____________ · Commit: `git log -1 --oneline` → ____________
 
+### Run 1 — result: 20 / 20 PASS, 5 bugs from the exploratory session
+
+Run on: **28 Sep 2026** · Tester: **Claude (for Madhusha)** · Browser: **Microsoft Edge 154**, driven by a Playwright
+script, with screenshots reviewed by eye · Commit: `1a9cfac` · Where: the isolated test stack (API :4001 on
+`leaveflow_test`, client :5174) instead of dev, so the reset step didn't wipe dev data. Same code, same steps.
+
 ## Test cases
 
 | ID | Story | Steps | Expected | Actual | Pass? | Notes |
 |----|-------|-------|----------|--------|-------|-------|
-| TC-01 | US-1 | Log in as `ishara@ceylonroots.lk` with password `wrong` | Stays on the login screen, red message "wrong email or password" | | | |
-| TC-02 | US-1, US-3 | Log in as Ishara with `password123` | Top bar shows "Ishara Fernando · Employee". Cards: Annual **14**, Casual **7**, Sick **7** | | | |
-| TC-03 | US-2, US-10 | Apply: Annual, Start **Mon 19 Oct 2026**, End **Wed 21 Oct 2026**, reason "Family trip" → Apply | Green "Request #1 sent for 3 day(s)". Request listed as **PENDING**. Annual card **11**, "available of 14 · **3 pending**" | | | |
-| TC-04 | US-2 | Apply: Sick, **Tue 27 Oct** → **Thu 5 Nov 2026** (8 working days) | Red "only 7 Sick day(s) available; this request needs 8". No new request in the list; Sick still **7** | | | |
-| TC-05 | US-2 | Apply: Annual, **Tue 20 Oct** → **Fri 23 Oct** | Red "overlaps your PENDING request #1 …". No new request | | | |
-| TC-06 | US-2 | Pick Start **Fri 23 Oct**, then End **Mon 19 Oct** (type it if the picker blocks it) | **Apply** stays greyed out; red "End date must be on or after the start date" | | | |
-| TC-07 | US-2 | Apply: Annual, **Mon 23 Nov** → **Wed 25 Nov** | "sent for **2** day(s)" — Tue 24 Nov (Il Poya) is not counted. Then **Cancel** it (clean-up for later cases) | | | |
-| TC-08 | NFR-2 | Still as Ishara: look at the top bar | No **Approvals** tab (employees can't approve) | | | |
-| TC-09 | US-4, NFR-2 | Log out. Log in as `kasun@ceylonroots.lk` (another team's manager) → Approvals | "Nothing waiting for you." — Ishara's request is **not** shown | | | |
-| TC-10 | US-4 | Log out. Log in as `ruwan@ceylonroots.lk` → Approvals | Ishara's request: Annual · 3 day(s) · 19 → 21 Oct, "Family trip", hint "Annual: 11 of 14 left after this · 3 pending in total" | | | |
-| TC-11 | US-4, NFR-3 | Ruwan clicks **Approve** | Item disappears; "Nothing waiting for you." | | | |
-| TC-12 | US-3, US-10 | Log out. Log in as Ishara | Request #1 **APPROVED**. Annual **11**, no "pending" text. No Cancel button on it | | | |
-| TC-13 | NFR-3 | Thunder Client: log in as Ishara (`POST /api/auth/login`), then `GET /api/leave-requests` with her token | Request 1 has `"decided_by": 1` (Ruwan) and a `decided_at` timestamp | | | |
-| TC-14 | US-4 | Thunder Client: log in as Ruwan, `PATCH /api/leave-requests/1` body `{"action":"approve"}` | **409** `INVALID_STATE` "cannot approve a request that is already APPROVED" | | | |
-| TC-15 | US-5 | Thunder Client, Ishara's token: `PATCH /api/leave-requests/1` body `{"action":"cancel"}` | **409** — approved requests can't be cancelled | | | |
-| TC-16 | US-5 | In the app as Ishara: Casual, **Mon 9 Nov** → **Mon 9 Nov** → Apply → **Cancel request** → OK | Status **CANCELLED**; Casual card back to **7**, no pending | | | |
-| TC-17 | US-4 | Ishara applies Annual **Mon 16 Nov** → **Tue 17 Nov**. Ruwan **Rejects** it. Ishara logs back in | Status **REJECTED**; Annual back to **11** (the 2 reserved days are released) | | | |
-| TC-18 | US-9 | Log in as `dilini@ceylonroots.lk` (HR) → Approvals | Tab says "all teams". Nimali can apply (as Nimali) and Dilini sees it here and can approve it | | | |
-| TC-19 | NFR-4 | As Ishara: F12 → **Ctrl+Shift+M** → set width **360** | Everything readable; buttons tappable; **no sideways scrolling** | | | |
-| TC-20 | — | Stop the server (Ctrl+C in the `npm server` terminal), then try to log in | Red "Cannot reach the server — is it running?" (no blank page, no crash). Restart the server afterwards | | | |
+| TC-01 | US-1 | Log in as `ishara@ceylonroots.lk` with password `wrong` | Stays on the login screen, red message "wrong email or password" | Red "wrong email or password"; still on login | **PASS** |  |
+| TC-02 | US-1, US-3 | Log in as Ishara with `password123` | Top bar shows "Ishara Fernando · Employee". Cards: Annual **14**, Casual **7**, Sick **7** | "Ishara Fernando · Employee"; Annual 14, Casual 7, Sick 7 | **PASS** |  |
+| TC-03 | US-2, US-10 | Apply: Annual, Start **Mon 19 Oct 2026**, End **Wed 21 Oct 2026**, reason "Family trip" → Apply | Green "Request #1 sent for 3 day(s)". Request listed as **PENDING**. Annual card **11**, "available of 14 · **3 pending**" | "Request #1 sent for 3 day(s) — waiting for approval."; PENDING; Annual 11 · 3 pending | **PASS** |  |
+| TC-04 | US-2 | Apply: Sick, **Tue 27 Oct** → **Thu 5 Nov 2026** (8 working days) | Red "only 7 Sick day(s) available; this request needs 8". No new request in the list; Sick still **7** | "only 7 Sick day(s) available; this request needs 8"; list unchanged; Sick 7 | **PASS** |  |
+| TC-05 | US-2 | Apply: Annual, **Tue 20 Oct** → **Fri 23 Oct** | Red "overlaps your PENDING request #1 …". No new request | "overlaps your PENDING request #1 (2026-10-19 to 2026-10-21)" | **PASS** |  |
+| TC-06 | US-2 | Pick Start **Fri 23 Oct**, then End **Mon 19 Oct** (type it if the picker blocks it) | **Apply** stays greyed out; red "End date must be on or after the start date" | Apply disabled; "End date must be on or after the start date." | **PASS** |  |
+| TC-07 | US-2 | Apply: Annual, **Mon 23 Nov** → **Wed 25 Nov** | "sent for **2** day(s)" — Tue 24 Nov (Il Poya) is not counted. Then **Cancel** it (clean-up for later cases) | "Request #2 sent for 2 day(s)"; cancelled → CANCELLED; Annual back to 11 · 3 pending | **PASS** |  |
+| TC-08 | NFR-2 | Still as Ishara: look at the top bar | No **Approvals** tab (employees can't approve) | No Approvals tab | **PASS** | See BUG-05 |
+| TC-09 | US-4, NFR-2 | Log out. Log in as `kasun@ceylonroots.lk` (another team's manager) → Approvals | "Nothing waiting for you." — Ishara's request is **not** shown | "Waiting for your decision · your team" — "Nothing waiting for you." | **PASS** |  |
+| TC-10 | US-4 | Log out. Log in as `ruwan@ceylonroots.lk` → Approvals | Ishara's request: Annual · 3 day(s) · 19 → 21 Oct, "Family trip", hint "Annual: 11 of 14 left after this · 3 pending in total" | 1 item: Ishara · Annual · 3 day(s), 19→21 Oct, "Family trip", "Annual: 11 of 14 left after this · 3 pending in total" | **PASS** |  |
+| TC-11 | US-4, NFR-3 | Ruwan clicks **Approve** | Item disappears; "Nothing waiting for you." | "Nothing waiting for you." | **PASS** |  |
+| TC-12 | US-3, US-10 | Log out. Log in as Ishara | Request #1 **APPROVED**. Annual **11**, no "pending" text. No Cancel button on it | #1 APPROVED, no Cancel button; Annual 11, no pending | **PASS** |  |
+| TC-13 | NFR-3 | Thunder Client: log in as Ishara (`POST /api/auth/login`), then `GET /api/leave-requests` with her token | Request 1 has `"decided_by": 1` (Ruwan) and a `decided_at` timestamp | status APPROVED, decided_by 1, decided_at 2026-09-28T17:12:12Z | **PASS** |  |
+| TC-14 | US-4 | Thunder Client: log in as Ruwan, `PATCH /api/leave-requests/1` body `{"action":"approve"}` | **409** `INVALID_STATE` "cannot approve a request that is already APPROVED" | 409 INVALID_STATE "cannot approve a request that is already APPROVED" | **PASS** |  |
+| TC-15 | US-5 | Thunder Client, Ishara's token: `PATCH /api/leave-requests/1` body `{"action":"cancel"}` | **409** — approved requests can't be cancelled | 409 INVALID_STATE "cannot cancel a request that is already APPROVED" | **PASS** |  |
+| TC-16 | US-5 | In the app as Ishara: Casual, **Mon 9 Nov** → **Mon 9 Nov** → Apply → **Cancel request** → OK | Status **CANCELLED**; Casual card back to **7**, no pending | #3 sent (Casual 6 · 1 pending) → CANCELLED; Casual back to 7 | **PASS** |  |
+| TC-17 | US-4 | Ishara applies Annual **Mon 16 Nov** → **Tue 17 Nov**. Ruwan **Rejects** it. Ishara logs back in | Status **REJECTED**; Annual back to **11** (the 2 reserved days are released) | #4 REJECTED; Annual back to 11 | **PASS** |  |
+| TC-18 | US-9 | Log in as `dilini@ceylonroots.lk` (HR) → Approvals | Tab says "all teams". Nimali can apply (as Nimali) and Dilini sees it here and can approve it | Heading "· all teams"; Nimali's #5 shown with "Annual: 12 of 14 left…"; approved → inbox empty | **PASS** |  |
+| TC-19 | NFR-4 | As Ishara: F12 → **Ctrl+Shift+M** → set width **360** | Everything readable; buttons tappable; **no sideways scrolling** | Page width 360 = viewport (no sideways scroll); Apply button 294×44 px | **PASS** | BUG-05 (cosmetic) |
+| TC-20 | — | Stop the server (Ctrl+C in the `npm server` terminal), then try to log in | Red "Cannot reach the server — is it running?" (no blank page, no crash). Restart the server afterwards | Red "Cannot reach the server — is it running?"; stayed on login | **PASS** |  |
 
 ## Not built yet — expected to fail, not bugs
 
@@ -74,6 +80,35 @@ Ideas to start from — then follow your curiosity:
 - Very long reason text; emoji; a reason with `<script>alert(1)</script>`
 - Request crossing New Year (e.g. Mon 28 Dec 2026 → Fri 8 Jan 2027) — which year's balance moves?
 
-| Time | What I tried | What happened | Bug? |
-|------|--------------|---------------|------|
-| | | | |
+### Run 1 log (28 Sep 2026)
+
+| # | What I tried | What happened | Bug? |
+|---|--------------|---------------|------|
+| E1 | Apply, cancel, apply the same dates again | Re-apply accepted (201); balance correct: 12 available, 2 pending | No |
+| E2 | Cancel the same request from two tabs at once | 200 then 409; Casual back to 7 | No |
+| E3 | HR approves the same request twice at the same instant | 200 then 409; approved days counted once (2) | No |
+| E4 | Apply exactly the remaining Sick balance (7), then 1 more day | 201 (7 days), then 409 INSUFFICIENT_BALANCE; available 0 | No |
+| E5 | Reason `<script>alert(1)</script> 🎉`; 500 / 501 chars; only spaces | Stored as typed and **shown as plain text — no script ran**; 500 OK, 501 → 400; only spaces → stored as empty | No |
+| E6a | Casual Mon 28 Dec 2026 → Fri 8 Jan 2027 (10 days: 4 in 2026, 6 in 2027) | Refused "only 7 Casual day(s) available; this request needs 10" — **all 10 days are charged to 2026** | **BUG-03** |
+| E6b | Annual Thu 14 – Fri 15 Jan 2027 (Thai Pongal falls in mid-January every year) | Counted **2 days** — there is no 2027 holiday list at all | **BUG-04** |
+| E7 | Two *different* Sick requests (4 + 4 days) sent at the same instant; balance 7 | **Both accepted → Sick available = −1** | **BUG-01** |
+| E8 | The *same* request sent twice at the same instant (two tabs) | **Two identical PENDING requests** (#17 and #18) | **BUG-02** |
+| E9 | Sick leave for last week, via the API | Accepted (201). The web form can't do this (it refuses past dates) — but sick leave is usually applied for *after* being sick | Question for Nadeesha (below) |
+
+### Bugs found
+
+| ID | Title | Severity | Priority |
+|----|-------|----------|----------|
+| BUG-01 | Two requests sent at the same moment can overspend the balance (went to −1) | S1 | P1 |
+| BUG-02 | The same request sent twice at the same moment creates duplicates | S2 | P2 |
+| BUG-03 | A request crossing New Year is charged entirely to the first year | S3 | P2 |
+| BUG-04 | No 2027 holiday list — every 2027 holiday will be counted as a leave day | S2 | P1 (before 1 Jan 2027) |
+| BUG-05 | On a phone, employees see a full-width "My leave" tab with nothing else in the bar | S4 | P3 |
+
+BUG-01 and BUG-02 share one cause: the checks (overlap, balance) and the insert are separate
+steps, so two requests arriving together both pass the checks before either is saved.
+
+### Question for Nadeesha (not a bug — a requirement gap)
+
+The web form refuses past dates, so an employee who was sick yesterday **can't apply for that
+sick day** in the app. Should sick leave (at least) be allowed with past dates? If yes, how far back?

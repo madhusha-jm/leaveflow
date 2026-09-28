@@ -13,10 +13,12 @@ const router = express.Router();
 // a wrong password — response time can't reveal which addresses exist.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
-// Password guessing: 10 attempts per 15 minutes per IP address, then 429.
+// Password guessing: 10 failed attempts per 15 minutes per IP address, then 429.
+// Successful logins don't count, so a shared office IP isn't locked out by normal use.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
+  skipSuccessfulRequests: true,
   standardHeaders: 'draft-8', // RateLimit header tells the client when to retry
   legacyHeaders: false,
   handler: (req, res, next) =>

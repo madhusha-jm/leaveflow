@@ -21,7 +21,7 @@ Every error, from every endpoint, uses one envelope:
 | 404 | No such resource | `NOT_FOUND` |
 | 409 | Clashes with the resource's current state | `INVALID_STATE`, `INSUFFICIENT_BALANCE`, `OVERLAPPING_REQUEST` |
 | 413 | Body larger than 10 kB | `PAYLOAD_TOO_LARGE` |
-| 429 | More than 10 login attempts in 15 minutes from one IP | `TOO_MANY_ATTEMPTS` |
+| 429 | More than 10 *failed* login attempts in 15 minutes from one IP | `TOO_MANY_ATTEMPTS` |
 
 Limits: `reason` is optional text, at most 500 characters (trimmed). `GET /health` (no auth)
 returns 200 when the API and database answer, 503 `{"status":"degraded"}` when the database doesn't.

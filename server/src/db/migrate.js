@@ -32,6 +32,11 @@ async function migrate() {
   }
 }
 
-migrate()
-  .catch((err) => { console.error(err.message); process.exitCode = 1; })
-  .finally(() => pool.end());
+module.exports = { migrate };
+
+// `npm run migrate` runs this file directly; the test setup imports migrate() instead.
+if (require.main === module) {
+  migrate()
+    .catch((err) => { console.error(err.message); process.exitCode = 1; })
+    .finally(() => pool.end());
+}

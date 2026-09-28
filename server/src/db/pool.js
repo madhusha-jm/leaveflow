@@ -10,4 +10,8 @@ types.setTypeParser(1700, (v) => Number(v));
 // A small set of open connections the API borrows and returns.
 const pool = new Pool({ connectionString: databaseUrl });
 
+// An idle connection can die (e.g. the database restarts). Without a listener
+// that error would crash the whole API; with one, the pool just replaces it.
+pool.on('error', (err) => console.error('Postgres idle client error:', err.message));
+
 module.exports = pool;

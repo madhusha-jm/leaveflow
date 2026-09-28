@@ -20,12 +20,17 @@ Every error, from every endpoint, uses one envelope:
 | 403 | Logged in, but not allowed | `FORBIDDEN` |
 | 404 | No such resource | `NOT_FOUND` |
 | 409 | Clashes with the resource's current state | `INVALID_STATE`, `INSUFFICIENT_BALANCE`, `OVERLAPPING_REQUEST` |
+| 413 | Body larger than 10 kB | `PAYLOAD_TOO_LARGE` |
+| 429 | More than 10 login attempts in 15 minutes from one IP | `TOO_MANY_ATTEMPTS` |
+
+Limits: `reason` is optional text, at most 500 characters (trimmed). `GET /health` (no auth)
+returns 200 when the API and database answer, 503 `{"status":"degraded"}` when the database doesn't.
 
 ## Endpoints
 
 | Method | Path                  | Who            | Success | Errors                  |
 |--------|-----------------------|----------------|---------|-------------------------|
-| POST   | /auth/login           | anyone         | 200     | 400, 401                |
+| POST   | /auth/login           | anyone         | 200     | 400, 401, 429           |
 | GET    | /me                   | any user       | 200     | 401                     |
 | GET    | /leave-requests       | see below      | 200     | 400, 401                |
 | POST   | /leave-requests       | any user (own) | 201     | 400, 401, 409           |
@@ -178,7 +183,7 @@ The UI renders this as "Annual: 8 available (2 pending)" (US-3).
 
 ---
 
-## What is actually running today (Phase 5, Part D)
+## What is actually running today (Phase 5, Part E)
 
 The whole contract above is implemented, on PostgreSQL, with JWT auth (HS256, 8-hour tokens),
 and a React client (`client/`, Vite on port 5173) uses it: login, balances, apply, my requests

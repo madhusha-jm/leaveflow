@@ -47,6 +47,10 @@ export async function api(path, { method = 'GET', body } = {}) {
   }
 
   const data = await res.json().catch(() => null);
+  // In development the Vite proxy answers 5xx with no JSON when the API is down.
+  if (!res.ok && !data && res.status >= 500) {
+    throw new ApiError(res.status, 'NETWORK', 'Cannot reach the server — is it running?');
+  }
   if (!res.ok) {
     const code = data?.error?.code || 'ERROR';
     const message = data?.error?.message || `Request failed (${res.status})`;

@@ -9,4 +9,9 @@ export default defineConfig({
     port: 5173,
     proxy: { '/api': 'http://localhost:4000' },
   },
+  // `npm test`: Vitest runs components in jsdom, a browser simulated in Node.
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test-setup.js',
+  },
 });

@@ -37,7 +37,7 @@ export default function MyLeave({ user }) {
         <h2>My balances <span className="muted small">{new Date().getFullYear()}</span></h2>
         <div className="balances">
           {balances.map((b) => (
-            <div className="card balance" key={b.leave_type_id}>
+            <div className="card balance" key={b.leave_type_id} role="group" aria-label={`${b.name} balance`}>
               <div className="balance-name">{b.name}</div>
               <div className="balance-num">{b.available}</div>
               <div className="muted small">

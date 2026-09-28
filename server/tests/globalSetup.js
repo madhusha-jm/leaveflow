@@ -1,7 +1,7 @@
 // Runs once before the whole test run: creates leaveflow_test if it doesn't
 // exist yet, then applies every migration to it (schema + seed users).
 require('./env');
-const { Client } = require('pg');
+const { Client, Pool } = require('pg');
 
 module.exports = async () => {
   const target = new URL(process.env.DATABASE_URL);
@@ -16,8 +16,12 @@ module.exports = async () => {
   if (!exists.rowCount) await client.query(`CREATE DATABASE ${dbName}`);
   await client.end();
 
-  const pool = require('../src/db/pool');
+  // Its own pool, not the app's shared one — the e2e server keeps using that one afterwards.
   const { migrate } = require('../src/db/migrate');
-  await migrate();
-  await pool.end();
+  const db = new Pool({ connectionString: target.toString() });
+  try {
+    await migrate(db);
+  } finally {
+    await db.end();
+  }
 };

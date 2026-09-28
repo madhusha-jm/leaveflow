@@ -1,7 +1,8 @@
 // Runs before anything else in every test process (jest `setupFiles` + globalSetup).
 // Points the app at a SEPARATE database — leaveflow_test on the same Postgres as
 // your .env — so a test run can never touch your development data.
-require('dotenv').config({ quiet: true });
+// The path is explicit so this also works when started from the repo root (Playwright).
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), quiet: true });
 
 const url = new URL(process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || '');
 url.pathname = '/leaveflow_test';

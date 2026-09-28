@@ -1,134 +1,45 @@
+// The Express app: middleware and routes, but no listening port —
+// server.js starts it, and Phase 6's tests will import it directly.
 const express = require('express');
-const db = require('./db');
 
 const app = express();
 app.use(express.json());
 
-const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
-const MAX_DAYS = 30;
-
-function httpError(status, code, message) {
-  const e = new Error(message);
-  e.status = status;
-  e.code = code;
-  return e;
-}
-
-// YYYY-MM-DD only — string comparison of dates is only safe in this format.
-function isDate(v) {
-  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
-    && !Number.isNaN(new Date(v).getTime());
-}
-
-function findRequest(id) {
-  return db.prepare('SELECT * FROM leave_requests WHERE id = ?').get(id);
-}
-
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '0.4.0', uptime: process.uptime() });
+  res.json({ status: 'ok', version: '0.5.0', uptime: process.uptime() });
 });
 
-// List requests, optionally filtered: GET /api/leave-requests?status=PENDING
-app.get('/api/leave-requests', (req, res, next) => {
-  const { status } = req.query;
-  if (status === undefined) {
-    return res.json(db.prepare('SELECT * FROM leave_requests ORDER BY id').all());
-  }
-  if (!STATUSES.includes(status)) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'status must be one of ' + STATUSES.join(', ')));
-  }
-  res.json(db.prepare('SELECT * FROM leave_requests WHERE status = ? ORDER BY id').all(status));
-});
-
-// Create: validate first, insert second, respond 201 last.
-app.post('/api/leave-requests', (req, res, next) => {
-  const { user_id, start_date, end_date, reason } = req.body || {};
-  if (!user_id || !start_date || !end_date) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'user_id, start_date and end_date are required'));
-  }
-  if (!isDate(start_date) || !isDate(end_date)) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'start_date and end_date must be YYYY-MM-DD'));
-  }
-  if (end_date < start_date) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'end_date must be on or after start_date'));
-  }
-  const days = (new Date(end_date) - new Date(start_date)) / 86400000 + 1; // inclusive
-  if (days > MAX_DAYS) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      `a request may span at most ${MAX_DAYS} days`));
-  }
-  if (!db.prepare('SELECT 1 FROM users WHERE id = ?').get(user_id)) {
-    return next(httpError(400, 'VALIDATION_ERROR', 'no such user_id'));
-  }
-  const result = db.prepare(
-    `INSERT INTO leave_requests (user_id, start_date, end_date, reason)
-     VALUES (?, ?, ?, ?)`
-  ).run(user_id, start_date, end_date, reason || null);
-  res.status(201).json(findRequest(result.lastInsertRowid));
-});
-
-// One endpoint, three actions — the Phase 2 state machine:
-//   approve/reject: PENDING -> APPROVED | REJECTED (records who decided and when)
-//   cancel:         PENDING -> CANCELLED, owner only
-// Anything not PENDING is final: 409.
-// v0 has no auth, so the caller states who they are (decided_by / user_id);
-// Phase 5 replaces both with the identity from the JWT.
-const ACTIONS = { approve: 'APPROVED', reject: 'REJECTED', cancel: 'CANCELLED' };
-
-app.patch('/api/leave-requests/:id', (req, res, next) => {
-  const { action, decided_by, user_id } = req.body || {};
-  if (!ACTIONS[action]) {
-    return next(httpError(400, 'VALIDATION_ERROR',
-      'action must be "approve", "reject" or "cancel"'));
-  }
-  const row = findRequest(req.params.id);
-  if (!row) return next(httpError(404, 'NOT_FOUND', 'no such leave request'));
-  if (action === 'cancel' && Number(user_id) !== row.user_id) {
-    return next(httpError(403, 'FORBIDDEN', 'only the owner can cancel a request'));
-  }
-  if (row.status !== 'PENDING') {
-    return next(httpError(409, 'INVALID_STATE',
-      `cannot ${action} a request that is already ${row.status}`));
-  }
-  if (action === 'cancel') {
-    db.prepare('UPDATE leave_requests SET status = ? WHERE id = ?')
-      .run(ACTIONS.cancel, req.params.id);
-  } else {
-    db.prepare(
-      `UPDATE leave_requests SET status = ?, decided_by = ?,
-       decided_at = datetime('now') WHERE id = ?`
-    ).run(ACTIONS[action], decided_by || null, req.params.id);
-  }
-  res.json(findRequest(req.params.id));
-});
+app.use('/api/leave-requests', require('./routes/leaveRequests'));
+app.use('/api/balances', require('./routes/balances'));
 
 app.use((req, res) => {
   res.status(404).json({ error: { code: 'NOT_FOUND', message: 'no such endpoint' } });
 });
 
-// Every next(err) lands here, so the { error: { code, message } } shape lives in one place.
+// Postgres error codes that mean "the client sent something invalid", not "we crashed".
+const PG_CLIENT_ERRORS = {
+  '23503': 'a referenced record does not exist',   // foreign key violation
+  '23514': 'a value breaks a database rule',       // check violation
+  '22007': 'invalid date',                         // invalid datetime format
+  '22P02': 'invalid number',                       // invalid text representation
+};
+
+// Every thrown error lands here, so the { error: { code, message } } shape lives in one place.
 app.use((err, req, res, next) => {
+  if (PG_CLIENT_ERRORS[err.code]) {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: PG_CLIENT_ERRORS[err.code] },
+    });
+  }
   const status = err.status || 500;
   if (status === 500) console.error(err);
   res.status(status).json({
     error: {
-      code: err.code || (err.type === 'entity.parse.failed' ? 'INVALID_JSON' : 'INTERNAL'),
+      code: err.type === 'entity.parse.failed' ? 'INVALID_JSON'
+        : status === 500 ? 'INTERNAL' : (err.code || 'ERROR'),
       message: status === 500 ? 'something went wrong' : err.message,
     },
   });
 });
 
-// Express 5 passes listen errors (e.g. port already taken) to this callback.
-app.listen(4000, (err) => {
-  if (err) {
-    console.error(err.code === 'EADDRINUSE'
-      ? 'Port 4000 is already in use — is another LeaveFlow server running?'
-      : err);
-    process.exit(1);
-  }
-  console.log('LeaveFlow v0 on http://localhost:4000');
-});
+module.exports = app;

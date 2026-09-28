@@ -15,15 +15,6 @@ function calendarDays(start, end) {
   return (toUtc(end) - toUtc(start)) / 86400000 + 1;
 }
 
-// Working days (Mon–Fri) from start to end, both inclusive.
-// Public holidays are not excluded yet — open question Q3 / risk R3 in docs/design.md.
-function leaveDays(start, end) {
-  let days = 0;
-  for (const d = toUtc(start); d <= toUtc(end); d.setUTCDate(d.getUTCDate() + 1)) {
-    const dow = d.getUTCDay(); // 0 = Sunday, 6 = Saturday
-    if (dow !== 0 && dow !== 6) days += 1;
-  }
-  return days;
-}
+// The leave-day count itself lives in leaveDays.js (weekends + holidays excluded).
 
-module.exports = { isDate, calendarDays, leaveDays };
+module.exports = { isDate, calendarDays };

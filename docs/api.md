@@ -178,14 +178,17 @@ The UI renders this as "Annual: 8 available (2 pending)" (US-3).
 
 ---
 
-## What is actually running today (Phase 5, Part C)
+## What is actually running today (Phase 5, Part D)
 
-The whole contract above is implemented, on PostgreSQL, with JWT auth (HS256, 8-hour tokens).
+The whole contract above is implemented, on PostgreSQL, with JWT auth (HS256, 8-hour tokens),
+and a React client (`client/`, Vite on port 5173) uses it: login, balances, apply, my requests
+with cancel, and an approvals inbox for managers and HR. Vite proxies `/api` to port 4000.
 Known gaps:
 
 - Public holidays are not excluded from `days` yet — working days are Mon–Fri (design R3, Q3).
 - The role inside a token is fixed for its 8-hour life; a role change takes effect at next login.
-- No React client yet — Part D.
+- The client keeps the token in `localStorage` — simple, but readable by any script on the page.
+  Acceptable for an internal MVP with no third-party scripts; revisit (httpOnly cookie) before launch.
 
 Demo accounts (password `password123`): ruwan (MANAGER of ishara), ishara (EMPLOYEE),
 dilini (HR_ADMIN), kasun (MANAGER of nimali), nimali (EMPLOYEE) — all `@ceylonroots.lk`.

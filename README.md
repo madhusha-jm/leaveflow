@@ -32,6 +32,17 @@ npm install
 npm run dev
 ```
 
+## Run the tests
+
+```bash
+cd server
+npm test        # 53 tests: unit (leaveDays) + API (Supertest)
+```
+
+The API tests use a separate database, `leaveflow_test`, on the same Postgres as your
+`.env`. It is created and migrated automatically, and emptied before every test —
+your development data is never touched. Docker's `leaveflow-pg` must be running.
+
 Demo accounts, all with password `password123`:
 
 | Email | Role |

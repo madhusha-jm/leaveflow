@@ -155,7 +155,9 @@ sequenceDiagram
 
 - **R1** — 60 users is small; resist imaginary scale. Revisit only if Ceylon Roots' group companies join.
 - **R2** — Q1 (approval flow) is unanswered; D9 is an assumption. **Blocking** for the approve endpoint's final shape.
-- **R3** — Q3 (weekends/poya days) is unanswered; until answered, `days` = working days Mon–Fri, holidays not excluded.
+- **R3** — Q3 (weekends/poya days) is unanswered. Since Phase 6, `days` excludes weekends and a
+  provisional 2026 holiday list in code (`server/src/lib/holidays.js`); a wrong date there silently
+  miscounts leave, so HR must confirm it — and should eventually own it as a table (Rule-3 needs that anyway).
 - **R4** — Q2 (rollover) is unanswered; v1 resets allocations every 1 January.
 - **R5** — Race: two requests submitted at the same moment could both pass the balance check.
   Acceptable at this scale; if it matters, lock the user's balance row (`SELECT … FOR UPDATE`) during create.

@@ -1,7 +1,9 @@
 const express = require('express');
 const pool = require('../db/pool');
 const httpError = require('../lib/httpError');
-const { isDate, calendarDays, leaveDays } = require('../lib/dates');
+const { isDate, calendarDays } = require('../lib/dates');
+const { leaveDays } = require('../lib/leaveDays');
+const { holidaysBetween } = require('../lib/holidays');
 const { getBalances } = require('../lib/balances');
 const { requireAuth } = require('../middleware/auth');
 
@@ -59,9 +61,9 @@ router.post('/', async (req, res) => {
     throw httpError(400, 'VALIDATION_ERROR',
       `a request may span at most ${MAX_CALENDAR_DAYS} days`);
   }
-  const days = leaveDays(start_date, end_date);
+  const days = leaveDays(start_date, end_date, holidaysBetween(start_date, end_date));
   if (days === 0) {
-    throw httpError(400, 'VALIDATION_ERROR', 'the range contains no working days');
+    throw httpError(400, 'VALIDATION_ERROR', 'the range contains only weekends and holidays');
   }
   const overlap = await pool.query(
     `SELECT id, status, start_date, end_date FROM leave_requests

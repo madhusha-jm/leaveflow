@@ -190,7 +190,10 @@ and a React client (`client/`, Vite on port 5173) uses it: login, balances, appl
 with cancel, and an approvals inbox for managers and HR. Vite proxies `/api` to port 4000.
 Known gaps:
 
-- Public holidays are not excluded from `days` yet — working days are Mon–Fri (design R3, Q3).
+- `days` excludes weekends and the public holidays in `server/src/lib/holidays.js`. That 2026
+  list is **provisional** (Q3): poya dates must be confirmed with HR, and moon-sighted holidays
+  (Ramazan, Hajj, Milad-un-Nabi, Deepavali) are not in it yet. The React form's day preview
+  counts Mon–Fri only; the server's number is the one stored.
 - The role inside a token is fixed for its 8-hour life; a role change takes effect at next login.
 - The client keeps the token in `localStorage` — simple, but readable by any script on the page.
   Acceptable for an internal MVP with no third-party scripts; revisit (httpOnly cookie) before launch.

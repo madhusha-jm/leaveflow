@@ -1,12 +1,26 @@
 // The Express app: middleware and routes, but no listening port —
 // server.js starts it, and Phase 6's tests will import it directly.
 const express = require('express');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const pool = require('./db/pool');
 
 const app = express();
-app.use(express.json());
+app.use(helmet()); // standard security headers (no sniffing, no framing, etc.)
+// One log line per request: "POST /api/leave-requests 201 12.3 ms". Quiet in tests.
+if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
+// No legitimate request is anywhere near 10 kB; a huge body is a mistake or an attack.
+app.use(express.json({ limit: '10kb' }));
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '0.5.0', uptime: process.uptime() });
+// "ok" means the API *and* the database answer — a monitor can alert on 503.
+app.get('/api/health', async (req, res) => {
+  const body = { status: 'ok', version: '0.6.0', uptime: process.uptime(), db: 'ok' };
+  try {
+    await pool.query('SELECT 1');
+    res.json(body);
+  } catch {
+    res.status(503).json({ ...body, status: 'degraded', db: 'unreachable' });
+  }
 });
 
 app.use('/api', require('./routes/auth')); // POST /api/auth/login, GET /api/me
@@ -35,10 +49,11 @@ app.use((err, req, res, next) => {
   }
   const status = err.status || 500;
   if (status === 500) console.error(err);
+  // body-parser errors carry a `type` instead of our codes.
+  const BODY_ERRORS = { 'entity.parse.failed': 'INVALID_JSON', 'entity.too.large': 'PAYLOAD_TOO_LARGE' };
   res.status(status).json({
     error: {
-      code: err.type === 'entity.parse.failed' ? 'INVALID_JSON'
-        : status === 500 ? 'INTERNAL' : (err.code || 'ERROR'),
+      code: BODY_ERRORS[err.type] || (status === 500 ? 'INTERNAL' : (err.code || 'ERROR')),
       message: status === 500 ? 'something went wrong' : err.message,
     },
   });

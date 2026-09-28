@@ -10,6 +10,7 @@ router.use(requireAuth); // every route below knows req.user = { id, role }
 
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 const MAX_CALENDAR_DAYS = 30;
+const MAX_REASON_LENGTH = 500;
 
 // List, optionally filtered: GET /api/leave-requests?status=PENDING
 // EMPLOYEE and MANAGER see their own requests; HR_ADMIN sees everyone's (US-9).
@@ -40,6 +41,13 @@ router.post('/', async (req, res) => {
   if (!leave_type_id || !start_date || !end_date) {
     throw httpError(400, 'VALIDATION_ERROR',
       'leave_type_id, start_date and end_date are required');
+  }
+  if (!Number.isInteger(Number(leave_type_id)) || Number(leave_type_id) < 1) {
+    throw httpError(400, 'VALIDATION_ERROR', 'leave_type_id must be a positive whole number');
+  }
+  if (reason != null && (typeof reason !== 'string' || reason.length > MAX_REASON_LENGTH)) {
+    throw httpError(400, 'VALIDATION_ERROR',
+      `reason must be text of at most ${MAX_REASON_LENGTH} characters`);
   }
   if (!isDate(start_date) || !isDate(end_date)) {
     throw httpError(400, 'VALIDATION_ERROR', 'start_date and end_date must be YYYY-MM-DD');
@@ -81,7 +89,7 @@ router.post('/', async (req, res) => {
   const { rows } = await pool.query(
     `INSERT INTO leave_requests (user_id, leave_type_id, start_date, end_date, days, reason)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [userId, leave_type_id, start_date, end_date, days, reason || null]);
+    [userId, Number(leave_type_id), start_date, end_date, days, reason?.trim() || null]);
   res.status(201).json(rows[0]);
 });
 

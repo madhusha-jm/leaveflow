@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { rateLimit } = require('express-rate-limit');
 const pool = require('../db/pool');
 const httpError = require('../lib/httpError');
 const { jwtSecret, jwtExpiresIn } = require('../config');
@@ -12,10 +13,24 @@ const router = express.Router();
 // a wrong password — response time can't reveal which addresses exist.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
-router.post('/auth/login', async (req, res) => {
+// Password guessing: 10 attempts per 15 minutes per IP address, then 429.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8', // RateLimit header tells the client when to retry
+  legacyHeaders: false,
+  handler: (req, res, next) =>
+    next(httpError(429, 'TOO_MANY_ATTEMPTS', 'too many login attempts — try again in 15 minutes')),
+});
+
+router.post('/auth/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     throw httpError(400, 'VALIDATION_ERROR', 'email and password are required');
+  }
+  // bcrypt only reads the first 72 bytes; long inputs just waste CPU.
+  if (email.length > 254 || password.length > 72) {
+    throw httpError(401, 'BAD_CREDENTIALS', 'wrong email or password');
   }
   const { rows } = await pool.query(
     'SELECT id, name, role, password_hash FROM users WHERE lower(email) = lower($1)', [email.trim()]);

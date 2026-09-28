@@ -177,16 +177,18 @@ The UI renders this as "Annual: 8 available (2 pending)" (US-3).
 
 ---
 
-## v0 walking skeleton (Phase 3) — what is actually running today
+## What is actually running today (Phase 5, Part B)
 
-The code in `server/` is a deliberate subset of this contract. Differences, all removed in Phase 5:
+The API runs on PostgreSQL with the full create/approve/reject/cancel rules and balances.
+Remaining differences from this contract:
 
-| v1 contract | v0 today |
+| v1 contract | Today |
 |---|---|
-| Identity from the JWT | No auth; caller sends `user_id` (create, cancel) / `decided_by` (approve, reject) in the body |
-| Leave types, balances, overlap check | Not implemented; no `leave_type_id` |
-| `/auth/login`, `/me`, `/balances`, `/team/requests` | Not implemented |
+| Identity from the JWT | No auth yet; caller sends `user_id` (create, cancel, `GET /balances?user_id=`) / `decided_by` (approve, reject) — Part C |
+| Managers decide only for their reports; HR sees all | Anyone may decide any request except their own — Part C |
+| `/auth/login`, `/me`, `/team/requests` | Not implemented — Part C |
 
-v0 does implement: `GET /health`, list with `?status=` filter, create with date/30-day validation,
-approve/reject/cancel as PATCH actions with the PENDING-only guard (409) and an owner-only cancel (403),
-and the error envelope above.
+Implemented: `GET /health`; list with `?status=`; create with every check in "Create rules" above
+(working days Mon–Fri — public holidays not yet excluded, see design R3); approve in one transaction
+with the balance update; reject/cancel releasing the pending reservation; `GET /balances` with an optional
+`?year=`; and the error envelope, including database rule violations mapped to 400.

@@ -1,5 +1,5 @@
-require('dotenv').config({ quiet: true });
 const { Pool, types } = require('pg');
+const { databaseUrl } = require('../config');
 
 // DATE (OID 1082): keep 'YYYY-MM-DD' strings. The default turns them into
 // local-midnight JS Dates, which shifts them a day back in UTC+5:30.
@@ -8,6 +8,6 @@ types.setTypeParser(1082, (v) => v);
 types.setTypeParser(1700, (v) => Number(v));
 
 // A small set of open connections the API borrows and returns.
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: databaseUrl });
 
 module.exports = pool;

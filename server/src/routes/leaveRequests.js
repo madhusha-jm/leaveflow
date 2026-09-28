@@ -3,24 +3,31 @@ const pool = require('../db/pool');
 const httpError = require('../lib/httpError');
 const { isDate, calendarDays, leaveDays } = require('../lib/dates');
 const { getBalances } = require('../lib/balances');
+const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
+router.use(requireAuth); // every route below knows req.user = { id, role }
 
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 const MAX_CALENDAR_DAYS = 30;
 
 // List, optionally filtered: GET /api/leave-requests?status=PENDING
-// (Part C makes this role-aware: employees see only their own.)
+// EMPLOYEE and MANAGER see their own requests; HR_ADMIN sees everyone's (US-9).
 router.get('/', async (req, res) => {
   const { status } = req.query;
   if (status !== undefined && !STATUSES.includes(status)) {
     throw httpError(400, 'VALIDATION_ERROR', 'status must be one of ' + STATUSES.join(', '));
   }
-  const { rows } = status === undefined
-    ? await pool.query('SELECT * FROM leave_requests ORDER BY created_at DESC, id DESC')
-    : await pool.query(
-        'SELECT * FROM leave_requests WHERE status = $1 ORDER BY created_at DESC, id DESC',
-        [status]);
+  const seeAll = req.user.role === 'HR_ADMIN';
+  const { rows } = await pool.query(
+    `SELECT lr.*, u.name AS employee_name, lt.name AS leave_type
+       FROM leave_requests lr
+       JOIN users u        ON u.id = lr.user_id
+       JOIN leave_types lt ON lt.id = lr.leave_type_id
+      WHERE ($1::boolean OR lr.user_id = $2)
+        AND ($3::text IS NULL OR lr.status = $3)
+      ORDER BY lr.created_at DESC, lr.id DESC`,
+    [seeAll, req.user.id, status ?? null]);
   res.json(rows);
 });
 
@@ -28,11 +35,11 @@ router.get('/', async (req, res) => {
 // then overlap, then balance, and the write last.
 router.post('/', async (req, res) => {
   const { leave_type_id, start_date, end_date, reason } = req.body || {};
-  const userId = Number(req.body?.user_id); // TEMP — Part C takes this from the JWT
+  const userId = req.user.id; // always from the token — a body user_id is ignored
 
-  if (!userId || !leave_type_id || !start_date || !end_date) {
+  if (!leave_type_id || !start_date || !end_date) {
     throw httpError(400, 'VALIDATION_ERROR',
-      'user_id, leave_type_id, start_date and end_date are required');
+      'leave_type_id, start_date and end_date are required');
   }
   if (!isDate(start_date) || !isDate(end_date)) {
     throw httpError(400, 'VALIDATION_ERROR', 'start_date and end_date must be YYYY-MM-DD');
@@ -48,9 +55,6 @@ router.post('/', async (req, res) => {
   if (days === 0) {
     throw httpError(400, 'VALIDATION_ERROR', 'the range contains no working days');
   }
-  const user = await pool.query('SELECT 1 FROM users WHERE id = $1', [userId]);
-  if (!user.rowCount) throw httpError(400, 'VALIDATION_ERROR', 'no such user_id');
-
   const overlap = await pool.query(
     `SELECT id, status, start_date, end_date FROM leave_requests
       WHERE user_id = $1 AND status IN ('PENDING', 'APPROVED')
@@ -85,25 +89,33 @@ router.post('/', async (req, res) => {
 //   approve: PENDING -> APPROVED, and the days move into leave_balances.used_days
 //   reject:  PENDING -> REJECTED  (the pending reservation simply stops counting)
 //   cancel:  PENDING -> CANCELLED, owner only
+// approve/reject: the requester's manager, or HR_ADMIN — never the requester.
 router.patch('/:id', async (req, res) => {
   const { action } = req.body || {};
-  const actor = Number(action === 'cancel' ? req.body?.user_id : req.body?.decided_by); // TEMP until Part C
+  const actor = req.user.id;
   if (!['approve', 'reject', 'cancel'].includes(action)) {
     throw httpError(400, 'VALIDATION_ERROR', 'action must be "approve", "reject" or "cancel"');
   }
-  if (!actor) {
-    throw httpError(400, 'VALIDATION_ERROR',
-      action === 'cancel' ? 'user_id is required' : 'decided_by is required');
-  }
-  const found = await pool.query('SELECT * FROM leave_requests WHERE id = $1', [req.params.id]);
+  if (!/^\d+$/.test(req.params.id)) throw httpError(404, 'NOT_FOUND', 'no such leave request');
+  const found = await pool.query(
+    `SELECT lr.*, u.manager_id FROM leave_requests lr
+       JOIN users u ON u.id = lr.user_id
+      WHERE lr.id = $1`, [req.params.id]);
   if (!found.rowCount) throw httpError(404, 'NOT_FOUND', 'no such leave request');
   const request = found.rows[0];
 
-  if (action === 'cancel' && actor !== request.user_id) {
-    throw httpError(403, 'FORBIDDEN', 'only the owner can cancel a request');
-  }
-  if (action !== 'cancel' && actor === request.user_id) {
-    throw httpError(403, 'FORBIDDEN', 'you cannot decide your own request');
+  if (action === 'cancel') {
+    if (actor !== request.user_id) {
+      throw httpError(403, 'FORBIDDEN', 'only the owner can cancel a request');
+    }
+  } else {
+    if (actor === request.user_id) {
+      throw httpError(403, 'FORBIDDEN', 'you cannot decide your own request');
+    }
+    const isTheirManager = request.manager_id === actor;
+    if (!isTheirManager && req.user.role !== 'HR_ADMIN') {
+      throw httpError(403, 'FORBIDDEN', "only the requester's manager or HR can decide this request");
+    }
   }
   if (request.status !== 'PENDING') {
     throw httpError(409, 'INVALID_STATE',

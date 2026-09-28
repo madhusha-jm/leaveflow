@@ -30,13 +30,14 @@ Every error, from every endpoint, uses one envelope:
 | GET    | /leave-requests       | see below      | 200     | 400, 401                |
 | POST   | /leave-requests       | any user (own) | 201     | 400, 401, 409           |
 | PATCH  | /leave-requests/:id   | see below      | 200     | 400, 401, 403, 404, 409 |
-| GET    | /balances             | any user (own) | 200     | 401                     |
+| GET    | /balances             | see below      | 200     | 400, 401, 403, 404      |
 | GET    | /team/requests        | MANAGER, HR_ADMIN | 200  | 401, 403                |
 
 ### Visibility rules
 
 - `GET /leave-requests` — EMPLOYEE and MANAGER see only their own requests; HR_ADMIN sees all (US-9).
   Optional filter `?status=PENDING|APPROVED|REJECTED|CANCELLED`; any other value → 400.
+- `GET /balances` — your own by default. `?user_id=N` shows a direct report's balance (their manager) or anyone's (HR_ADMIN), so an approver sees what a decision leaves; otherwise 403. Optional `?year=` (default: current year).
 - `GET /team/requests` — PENDING requests of the caller's direct reports (`users.manager_id = me`); HR_ADMIN sees every PENDING request.
 
 ### PATCH actions — the state machine as access rules
@@ -177,18 +178,14 @@ The UI renders this as "Annual: 8 available (2 pending)" (US-3).
 
 ---
 
-## What is actually running today (Phase 5, Part B)
+## What is actually running today (Phase 5, Part C)
 
-The API runs on PostgreSQL with the full create/approve/reject/cancel rules and balances.
-Remaining differences from this contract:
+The whole contract above is implemented, on PostgreSQL, with JWT auth (HS256, 8-hour tokens).
+Known gaps:
 
-| v1 contract | Today |
-|---|---|
-| Identity from the JWT | No auth yet; caller sends `user_id` (create, cancel, `GET /balances?user_id=`) / `decided_by` (approve, reject) — Part C |
-| Managers decide only for their reports; HR sees all | Anyone may decide any request except their own — Part C |
-| `/auth/login`, `/me`, `/team/requests` | Not implemented — Part C |
+- Public holidays are not excluded from `days` yet — working days are Mon–Fri (design R3, Q3).
+- The role inside a token is fixed for its 8-hour life; a role change takes effect at next login.
+- No React client yet — Part D.
 
-Implemented: `GET /health`; list with `?status=`; create with every check in "Create rules" above
-(working days Mon–Fri — public holidays not yet excluded, see design R3); approve in one transaction
-with the balance update; reject/cancel releasing the pending reservation; `GET /balances` with an optional
-`?year=`; and the error envelope, including database rule violations mapped to 400.
+Demo accounts (password `password123`): ruwan (MANAGER of ishara), ishara (EMPLOYEE),
+dilini (HR_ADMIN), kasun (MANAGER of nimali), nimali (EMPLOYEE) — all `@ceylonroots.lk`.

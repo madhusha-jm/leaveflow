@@ -40,7 +40,15 @@ npm test        # 53 tests: unit (leaveDays) + API (Supertest)
 
 cd ../client
 npm test        # React component tests (Vitest + Testing Library)
+
+cd ..
+npm install
+npm run test:e2e   # Playwright: a real Edge browser clicks apply → approve → approved
 ```
+
+The end-to-end run starts its own API (port 4001, on `leaveflow_test`) and client
+(port 5174), so it works whether or not your dev servers are running. It uses the
+Microsoft Edge that comes with Windows — no browser download needed.
 
 The API tests use a separate database, `leaveflow_test`, on the same Postgres as your
 `.env`. It is created and migrated automatically, and emptied before every test —

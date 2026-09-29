@@ -7,7 +7,28 @@ HR sees everything, and balances stay honest (pending requests reserve their day
 - API contract: [docs/api.md](docs/api.md)
 - Design and decisions: [docs/design.md](docs/design.md)
 
-## Run it locally
+## Run it with Docker (quickest)
+
+You need only Docker Desktop — no Node, no Postgres install.
+
+```bash
+docker compose up --build -d     # first time ~3 min; later starts take seconds
+```
+
+- App: http://localhost:8080 (log in with a demo account below)
+- Database browser (Adminer): http://localhost:8081 — System *PostgreSQL*, Server `db`,
+  user / password / database all `leaveflow`
+- Migrations (tables + demo users) run automatically every time the API starts.
+
+| Command | What it does |
+|---|---|
+| `docker compose up --build -d` | Build (after code changes) and start everything |
+| `docker compose ps` | Status — `api` and `db` should say *(healthy)* |
+| `docker compose logs -f api` | Follow the API's request log |
+| `docker compose down` | Stop. **Data is kept** (the `dbdata` volume) |
+| `docker compose down -v` | Stop **and delete all data** — know you mean it |
+
+## Run it locally (for development)
 
 You need Node 20.19+ and Docker Desktop.
 

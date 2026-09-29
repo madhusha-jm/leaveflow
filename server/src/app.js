@@ -6,6 +6,10 @@ const morgan = require('morgan');
 const pool = require('./db/pool');
 
 const app = express();
+// Behind a proxy (nginx in docker compose, a load balancer in the cloud) every request
+// arrives from the proxy's IP. TRUST_PROXY=1 trusts one hop of X-Forwarded-For, so the
+// login rate limit counts real clients instead of lumping everyone together.
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
 app.use(helmet()); // standard security headers (no sniffing, no framing, etc.)
 // One log line per request: "POST /api/leave-requests 201 12.3 ms". Quiet in tests.
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));

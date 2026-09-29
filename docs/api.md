@@ -19,7 +19,7 @@ Every error, from every endpoint, uses one envelope:
 | 401 | Not logged in / bad or expired token | `NO_TOKEN`, `BAD_TOKEN`, `BAD_CREDENTIALS` |
 | 403 | Logged in, but not allowed | `FORBIDDEN` |
 | 404 | No such resource | `NOT_FOUND` |
-| 409 | Clashes with the resource's current state | `INVALID_STATE`, `INSUFFICIENT_BALANCE`, `OVERLAPPING_REQUEST` |
+| 409 | Clashes with the resource's current state | `INVALID_STATE`, `INSUFFICIENT_BALANCE`, `OVERLAPPING_REQUEST`, `HOLIDAYS_NOT_LOADED` |
 | 413 | Body larger than 10 kB | `PAYLOAD_TOO_LARGE` |
 | 429 | More than 10 *failed* login attempts in 15 minutes from one IP | `TOO_MANY_ATTEMPTS` |
 
@@ -197,6 +197,9 @@ Known gaps:
   list is **provisional** (Q3): poya dates must be confirmed with HR, and moon-sighted holidays
   (Ramazan, Hajj, Milad-un-Nabi, Deepavali) are not in it yet. The React form's day preview
   counts Mon–Fri only; the server's number is the one stored.
+- A year with **no holiday list** can't be booked: `409 HOLIDAYS_NOT_LOADED`, and the server
+  prints a warning at startup if this year or next is missing (issue #26). **2027 is missing** —
+  HR must supply it before anyone can book 2027 leave.
 - The role inside a token is fixed for its 8-hour life; a role change takes effect at next login.
 - The client keeps the token in `localStorage` — simple, but readable by any script on the page.
   Acceptable for an internal MVP with no third-party scripts; revisit (httpOnly cookie) before launch.

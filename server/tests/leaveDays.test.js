@@ -63,13 +63,12 @@ describe('holidaysBetween', () => {
     expect(holidaysBetween('2026-04-29', '2026-05-04')).toContain('2026-05-01');
   });
 
-  test('covers both years when a request crosses New Year', () => {
-    const list = holidaysBetween('2026-12-28', '2027-01-05');
-    expect(list).toContain('2026-12-25');
+  test('refuses a year with no holiday list instead of returning none (issue #26)', () => {
+    expect(() => holidaysBetween('2030-03-04', '2030-03-08')).toThrow('public holidays for 2030 are not loaded');
   });
 
-  test('returns an empty list for a year with no data yet', () => {
-    expect(holidaysBetween('2030-03-02', '2030-03-06')).toEqual([]);
+  test('refuses a range that reaches into a year with no list', () => {
+    expect(() => holidaysBetween('2026-12-28', '2027-01-05')).toThrow('public holidays for 2027');
   });
 
   test('the Vesak week really is 3 working days end to end', () => {

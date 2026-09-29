@@ -7,6 +7,8 @@
 // Not yet listed: Ramazan, Hajj, Milad-un-Nabi and Deepavali — their dates depend on
 // moon sighting and are announced during the year; add them when HR confirms.
 // Next step when HR owns this list: a `holidays` table they can edit, instead of code.
+const httpError = require('./httpError');
+
 const HOLIDAYS = {
   2026: [
     '2026-01-15', // Tamil Thai Pongal
@@ -28,13 +30,24 @@ const HOLIDAYS = {
   ],
 };
 
-// All holidays in the years a request touches (a request may cross New Year).
+// All holidays in the years a date range touches.
+// A year with no list is an error, not an empty list: silently treating every
+// poya day as a working day would miscount leave without anyone noticing (issue #26).
 function holidaysBetween(startDate, endDate) {
   const from = Number(startDate.slice(0, 4));
   const to = Number(endDate.slice(0, 4));
   const list = [];
-  for (let y = from; y <= to; y++) list.push(...(HOLIDAYS[y] || []));
+  for (let y = from; y <= to; y++) {
+    if (!HOLIDAYS[y]) {
+      throw httpError(409, 'HOLIDAYS_NOT_LOADED',
+        `public holidays for ${y} are not loaded yet — HR must add them before leave in ${y} can be booked`);
+    }
+    list.push(...HOLIDAYS[y]);
+  }
   return list;
 }
 
-module.exports = { HOLIDAYS, holidaysBetween };
+// Years (of those given) that have no holiday list — server.js warns about these at startup.
+const missingYears = (years) => years.filter((y) => !HOLIDAYS[y]);
+
+module.exports = { HOLIDAYS, holidaysBetween, missingYears };

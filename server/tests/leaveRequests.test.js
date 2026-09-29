@@ -47,6 +47,14 @@ describe('POST /api/leave-requests', () => {
     expect(res.body.error.message).toMatch(/cannot cross New Year/);
   });
 
+  test('refuses leave in a year with no holiday list with 409 (issue #26)', async () => {
+    const res = await as('ishara').post('/api/leave-requests', {
+      leave_type_id: ANNUAL, start_date: '2030-03-04', end_date: '2030-03-05',
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('HOLIDAYS_NOT_LOADED');
+  });
+
   test('accepts a request ending on 31 December', async () => {
     const res = await as('ishara').post('/api/leave-requests', {
       leave_type_id: ANNUAL, start_date: '2026-12-28', end_date: '2026-12-31',

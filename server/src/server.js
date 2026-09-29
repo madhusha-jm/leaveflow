@@ -1,5 +1,6 @@
 const app = require('./app');
 const pool = require('./db/pool');
+const { missingYears } = require('./lib/holidays');
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -12,6 +13,10 @@ const server = app.listen(PORT, (err) => {
     process.exit(1);
   }
   console.log(`LeaveFlow API on http://localhost:${PORT}`);
+  const thisYear = new Date().getFullYear();
+  for (const y of missingYears([thisYear, thisYear + 1])) {
+    console.warn(`WARNING: no public holiday list for ${y} in src/lib/holidays.js — leave in ${y} can't be booked until HR adds it`);
+  }
 });
 
 // Ctrl+C (SIGINT) or a platform stop (SIGTERM): finish in-flight requests,

@@ -61,7 +61,8 @@ Body: `{ "action": "approve" | "reject" | "cancel" }`
 
 ### Create rules (`POST /leave-requests`)
 
-Checked in this order — cheap checks before any database read, the write last:
+Checked in this order — cheap checks before any database read, the write last (the overlap check, balance check and insert run in one transaction that locks the user, so
+two requests from the same person are handled one after the other — issues #23, #24):
 
 1. `leave_type_id`, `start_date`, `end_date` present and well-formed → else 400.
 2. `end_date >= start_date` → else 400.

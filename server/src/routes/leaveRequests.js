@@ -65,34 +65,50 @@ router.post('/', async (req, res) => {
   if (days === 0) {
     throw httpError(400, 'VALIDATION_ERROR', 'the range contains only weekends and holidays');
   }
-  const overlap = await pool.query(
-    `SELECT id, status, start_date, end_date FROM leave_requests
-      WHERE user_id = $1 AND status IN ('PENDING', 'APPROVED')
-        AND start_date <= $3 AND end_date >= $2
-      LIMIT 1`,
-    [userId, start_date, end_date]);
-  if (overlap.rowCount) {
-    const o = overlap.rows[0];
-    throw httpError(409, 'OVERLAPPING_REQUEST',
-      `overlaps your ${o.status} request #${o.id} (${o.start_date} to ${o.end_date})`);
-  }
+  // Check-then-insert must be atomic: two requests arriving together would otherwise
+  // both pass the overlap and balance checks before either is saved (issues #23, #24).
+  // Locking the user's row makes a user's creates run one at a time; other users
+  // are unaffected.
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
-  const year = Number(start_date.slice(0, 4));
-  const balance = (await getBalances(pool, userId, year))
-    .find((b) => b.leave_type_id === Number(leave_type_id));
-  if (!balance) throw httpError(400, 'VALIDATION_ERROR', 'no such leave_type_id');
-  if (days > balance.available) {
-    throw httpError(409, 'INSUFFICIENT_BALANCE',
-      `only ${balance.available} ${balance.name} day(s) available` +
-      (balance.pending_days ? ` (${balance.pending_days} pending)` : '') +
-      `; this request needs ${days}`);
-  }
+    const overlap = await client.query(
+      `SELECT id, status, start_date, end_date FROM leave_requests
+        WHERE user_id = $1 AND status IN ('PENDING', 'APPROVED')
+          AND start_date <= $3 AND end_date >= $2
+        LIMIT 1`,
+      [userId, start_date, end_date]);
+    if (overlap.rowCount) {
+      const o = overlap.rows[0];
+      throw httpError(409, 'OVERLAPPING_REQUEST',
+        `overlaps your ${o.status} request #${o.id} (${o.start_date} to ${o.end_date})`);
+    }
 
-  const { rows } = await pool.query(
-    `INSERT INTO leave_requests (user_id, leave_type_id, start_date, end_date, days, reason)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [userId, Number(leave_type_id), start_date, end_date, days, reason?.trim() || null]);
-  res.status(201).json(rows[0]);
+    const year = Number(start_date.slice(0, 4));
+    const balance = (await getBalances(client, userId, year))
+      .find((b) => b.leave_type_id === Number(leave_type_id));
+    if (!balance) throw httpError(400, 'VALIDATION_ERROR', 'no such leave_type_id');
+    if (days > balance.available) {
+      throw httpError(409, 'INSUFFICIENT_BALANCE',
+        `only ${balance.available} ${balance.name} day(s) available` +
+        (balance.pending_days ? ` (${balance.pending_days} pending)` : '') +
+        `; this request needs ${days}`);
+    }
+
+    const { rows } = await client.query(
+      `INSERT INTO leave_requests (user_id, leave_type_id, start_date, end_date, days, reason)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [userId, Number(leave_type_id), start_date, end_date, days, reason?.trim() || null]);
+    await client.query('COMMIT');
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // One endpoint, three actions — the Phase 2 state machine:

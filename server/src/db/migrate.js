@@ -26,7 +26,7 @@ async function migrate(db = pool) {
       console.log('applied', file);
     } catch (err) {
       await client.query('ROLLBACK');
-      throw new Error(`${file} failed: ${err.message}`);
+      throw new Error(`${file} failed: ${err.message}`, { cause: err });
     } finally {
       client.release();
     }

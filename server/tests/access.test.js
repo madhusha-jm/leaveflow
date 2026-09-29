@@ -91,3 +91,27 @@ describe('GET /api/health', () => {
     expect(res.body).toMatchObject({ status: 'ok', db: 'ok' });
   });
 });
+
+describe('US-14: who else on the team is off', () => {
+  test("shows an overlapping teammate's approved leave", async () => {
+    const sahan = await apply('sahan', { start_date: '2026-03-11', end_date: '2026-03-12' });
+    await as('ruwan').patch(`/api/leave-requests/${sahan.id}`, { action: 'approve' });
+    await apply('ishara'); // 9–13 March
+    const res = await as('ruwan').get('/api/team/requests');
+    const ishara = res.body.find((r) => r.employee_name === 'Ishara Fernando');
+    expect(ishara.also_off).toEqual([
+      { name: 'Sahan Wickramasinghe', start_date: '2026-03-11', end_date: '2026-03-12', status: 'APPROVED' },
+    ]);
+  });
+
+  test('leaves out non-overlapping, cancelled and other-team leave', async () => {
+    await apply('sahan', { start_date: '2026-03-16', end_date: '2026-03-17' }); // after Ishara's week
+    const cancelled = await apply('sahan', { start_date: '2026-03-09', end_date: '2026-03-09' });
+    await as('sahan').patch(`/api/leave-requests/${cancelled.id}`, { action: 'cancel' });
+    await apply('nimali'); // same week, but Kasun's team
+    await apply('ishara');
+    const res = await as('ruwan').get('/api/team/requests');
+    const ishara = res.body.find((r) => r.employee_name === 'Ishara Fernando');
+    expect(ishara.also_off).toEqual([]);
+  });
+});

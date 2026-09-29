@@ -124,3 +124,6 @@ main { max-width: 820px; margin: 0 auto; padding: 1.25rem 16px 3rem; }
   .item-main { flex: 1; }
   .actions button { flex: none; }
 }
+
+/* US-14: teammates already off — a warning colour, since it's a reason to pause */
+.also-off { margin-top: 0.4rem; padding: 0.4rem 0.6rem; background: #fef0c7; color: var(--warn); border-radius: 6px; }

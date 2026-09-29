@@ -20,6 +20,7 @@ const USERS = {
   dilini: 'dilini@ceylonroots.lk', // HR_ADMIN
   kasun: 'kasun@ceylonroots.lk', // MANAGER
   nimali: 'nimali@ceylonroots.lk', // EMPLOYEE, reports to Kasun
+  sahan: 'sahan@ceylonroots.lk', // EMPLOYEE, reports to Ruwan (US-14)
 };
 const ANNUAL = 1; // leave_types seed: 1 Annual (14), 2 Casual (7), 3 Sick (7)
 const SICK = 3;

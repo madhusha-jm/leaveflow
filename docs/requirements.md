@@ -116,6 +116,17 @@
   * **When** I open it
   * **Then** each row shows separate Annual/Casual/Sick columns plus a total
 
+### Change request (Phase 10) — from Nadeesha, Thursday
+
+> "When a manager opens an approval, can they see WHO ELSE on the team is already off that
+> week? Dilini approved two overlapping leaves last month and packing was short-staffed for three days."
+
+* **US-14:** As a manager, I want to see which teammates are already off during a request's dates when I decide it, so that I don't leave the team short-staffed.
+  * **Given** Sahan (same team as Ishara) has an APPROVED or PENDING request overlapping Ishara's pending request
+  * **When** Ruwan opens his approvals
+  * **Then** Ishara's request shows "Also off: Sahan Wickramasinghe" with Sahan's dates and status
+  * **And** teammates whose leave doesn't overlap, cancelled/rejected requests, and other teams are not shown
+
 ---
 
 ## 8. Requirements Hidden in Nadeesha's Follow-up (Your Turn — Lab 2)

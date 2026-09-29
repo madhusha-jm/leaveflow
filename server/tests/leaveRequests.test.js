@@ -177,3 +177,32 @@ describe('GET /api/leave-requests', () => {
     expect(res.body[0].start_date).toBe('2026-03-16');
   });
 });
+
+describe('POST /api/leave-requests — requests arriving at the same moment', () => {
+  // Issue #23 (BUG-01): five 2-day Sick requests (10 days) against a balance of 7, all at once.
+  // Only three fit (6 days); the other two must be refused — never a negative balance.
+  test('requests sent together cannot overspend the balance', async () => {
+    const weeks = [ // Mon–Tue pairs, 2 working days each, no holidays
+      ['2026-03-09', '2026-03-10'], ['2026-03-16', '2026-03-17'], ['2026-03-23', '2026-03-24'],
+      ['2026-03-30', '2026-03-31'], ['2026-04-06', '2026-04-07'],
+    ];
+    const results = await Promise.all(weeks.map(([start_date, end_date]) =>
+      as('ishara').post('/api/leave-requests', { leave_type_id: SICK, start_date, end_date })));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(3);
+    expect(results.filter((r) => r.status === 409)).toHaveLength(2);
+    const bal = await as('ishara').get('/api/balances?year=2026');
+    expect(bal.body.find((b) => b.leave_type_id === SICK).available).toBe(1);
+  });
+
+  // Issue #24 (BUG-02): the same request from two tabs.
+  test('the same request sent twice is only created once', async () => {
+    const body = { leave_type_id: ANNUAL, start_date: '2026-03-09', end_date: '2026-03-10' };
+    const results = await Promise.all([
+      as('ishara').post('/api/leave-requests', body),
+      as('ishara').post('/api/leave-requests', body),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    const list = await as('ishara').get('/api/leave-requests');
+    expect(list.body).toHaveLength(1);
+  });
+});

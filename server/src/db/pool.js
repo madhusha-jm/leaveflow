@@ -1,5 +1,6 @@
 const { Pool, types } = require('pg');
 const { databaseUrl } = require('../config');
+const { logger } = require('../middleware/logging');
 
 // DATE (OID 1082): keep 'YYYY-MM-DD' strings. The default turns them into
 // local-midnight JS Dates, which shifts them a day back in UTC+5:30.
@@ -12,6 +13,6 @@ const pool = new Pool({ connectionString: databaseUrl });
 
 // An idle connection can die (e.g. the database restarts). Without a listener
 // that error would crash the whole API; with one, the pool just replaces it.
-pool.on('error', (err) => console.error('Postgres idle client error:', err.message));
+pool.on('error', (err) => logger.error({ err }, 'Postgres idle client error'));
 
 module.exports = pool;

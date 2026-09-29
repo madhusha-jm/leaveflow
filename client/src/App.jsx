@@ -46,16 +46,17 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <strong className="brand">LeaveFlow</strong>
-        <nav className="tabs">
-          <button className={page === 'mine' ? 'active' : ''} onClick={() => setPage('mine')}>
-            My leave
-          </button>
-          {canApprove && (
+        {/* Employees have only one page, so no tab bar at all (issue #27). */}
+        {canApprove && (
+          <nav className="tabs">
+            <button className={page === 'mine' ? 'active' : ''} onClick={() => setPage('mine')}>
+              My leave
+            </button>
             <button className={page === 'approvals' ? 'active' : ''} onClick={() => setPage('approvals')}>
               Approvals
             </button>
-          )}
-        </nav>
+          </nav>
+        )}
         <div className="who">
           <span>{user.name} <span className="muted">· {ROLE_LABEL[user.role]}</span></span>
           <button className="link" onClick={logout}>Log out</button>

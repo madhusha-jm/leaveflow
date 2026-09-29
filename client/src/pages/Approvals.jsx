@@ -62,6 +62,7 @@ export default function Approvals({ user }) {
                   {prettyDate(r.start_date)} → {prettyDate(r.end_date)}
                 </div>
                 {r.reason && <div className="small">"{r.reason}"</div>}
+                <AlsoOff people={r.also_off} />
                 {bal && (
                   // Pending days are already reserved, so "available" is what is
                   // left even if every pending request (this one included) is approved.
@@ -82,5 +83,22 @@ export default function Approvals({ user }) {
         })}
       </ul>
     </section>
+  );
+}
+
+// US-14: who else on the team is off during this request.
+function AlsoOff({ people = [] }) {
+  if (!people.length) return <div className="small muted">No one else on the team is off then.</div>;
+  return (
+    <div className="small also-off">
+      <strong>Also off:</strong>{' '}
+      {people.map((p, i) => (
+        <span key={i}>
+          {i > 0 && '; '}
+          {p.name} ({prettyDate(p.start_date)} → {prettyDate(p.end_date)}
+          {p.status === 'PENDING' ? ', pending' : ''})
+        </span>
+      ))}
+    </div>
   );
 }

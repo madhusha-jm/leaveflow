@@ -77,6 +77,13 @@ two requests from the same person are handled one after the other — issues #23
 
 `user_id` is always taken from the token, never from the body.
 
+### `GET /team/requests` — the approval inbox
+
+Each PENDING request also carries `also_off` (US-14): the requester's teammates (same manager)
+whose APPROVED or PENDING requests overlap its dates, e.g.
+`[{"name":"Sahan Wickramasinghe","start_date":"2026-11-04","end_date":"2026-11-05","status":"APPROVED"}]`
+— `[]` when nobody else is off.
+
 ## Examples
 
 ### Login

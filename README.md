@@ -99,6 +99,7 @@ Demo accounts, all with password `password123`:
 | Email | Role |
 |---|---|
 | ishara@ceylonroots.lk | Employee (reports to Ruwan) |
+| sahan@ceylonroots.lk | Employee (reports to Ruwan) |
 | ruwan@ceylonroots.lk | Manager |
 | dilini@ceylonroots.lk | HR admin |
 | nimali@ceylonroots.lk | Employee (reports to Kasun) |

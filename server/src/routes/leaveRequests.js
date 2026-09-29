@@ -61,6 +61,12 @@ router.post('/', async (req, res) => {
     throw httpError(400, 'VALIDATION_ERROR',
       `a request may span at most ${MAX_CALENDAR_DAYS} days`);
   }
+  // Each year has its own balance, so one request must not span two (issue #25).
+  // Refusing is the simple, safe rule until Nadeesha decides whether to split automatically.
+  if (start_date.slice(0, 4) !== end_date.slice(0, 4)) {
+    throw httpError(400, 'VALIDATION_ERROR',
+      'a request cannot cross New Year — make one ending 31 Dec and one starting 1 Jan');
+  }
   const days = leaveDays(start_date, end_date, holidaysBetween(start_date, end_date));
   if (days === 0) {
     throw httpError(400, 'VALIDATION_ERROR', 'the range contains only weekends and holidays');

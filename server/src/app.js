@@ -2,7 +2,7 @@
 // server.js starts it, and Phase 6's tests will import it directly.
 const express = require('express');
 const helmet = require('helmet');
-const morgan = require('morgan');
+const { httpLogger, logger } = require('./middleware/logging');
 const pool = require('./db/pool');
 
 const app = express();
@@ -11,8 +11,8 @@ const app = express();
 // login rate limit counts real clients instead of lumping everyone together.
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
 app.use(helmet()); // standard security headers (no sniffing, no framing, etc.)
-// One log line per request: "POST /api/leave-requests 201 12.3 ms". Quiet in tests.
-if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
+// One JSON log line per request, with a request id and the auth header redacted.
+app.use(httpLogger);
 // No legitimate request is anywhere near 10 kB; a huge body is a mistake or an attack.
 app.use(express.json({ limit: '10kb' }));
 
@@ -52,7 +52,7 @@ app.use((err, req, res, next) => {
     });
   }
   const status = err.status || 500;
-  if (status === 500) console.error(err);
+  if (status === 500) logger.error({ err, reqId: req.id }, 'unhandled error');
   // body-parser errors carry a `type` instead of our codes.
   const BODY_ERRORS = { 'entity.parse.failed': 'INVALID_JSON', 'entity.too.large': 'PAYLOAD_TOO_LARGE' };
   res.status(status).json({

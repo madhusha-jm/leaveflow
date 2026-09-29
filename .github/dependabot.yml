@@ -10,6 +10,10 @@ updates:
     directory: /client
     schedule: { interval: weekly }
     open-pull-requests-limit: 5
+    ignore:
+      # jsdom 30+ needs Node 22+; revisit together with the Node 24 LTS upgrade.
+      - dependency-name: jsdom
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly }
@@ -19,6 +23,16 @@ updates:
   - package-ecosystem: docker
     directory: /server
     schedule: { interval: monthly }
+    ignore:
+      # Node moves between LTS versions deliberately (dev machine, CI and images together),
+      # not whenever a new "Current" release appears.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /client
     schedule: { interval: monthly }
+    ignore:
+      # Node moves between LTS versions deliberately (dev machine, CI and images together),
+      # not whenever a new "Current" release appears.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

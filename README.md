@@ -6,6 +6,8 @@ HR sees everything, and balances stay honest (pending requests reserve their day
 - Requirements: [docs/requirements.md](docs/requirements.md)
 - API contract: [docs/api.md](docs/api.md)
 - Design and decisions: [docs/design.md](docs/design.md)
+- Deploying (Render, AWS): [docs/deploy.md](docs/deploy.md)
+- Test cases and results: [docs/test-cases.md](docs/test-cases.md)
 
 ## Run it with Docker (quickest)
 

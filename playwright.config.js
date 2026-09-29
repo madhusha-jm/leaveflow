@@ -7,6 +7,9 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './e2e',
+  // Each expect() retries for up to 10 s (default 5 s): the first page load waits for
+  // Vite to compile, which on a busy laptop (e.g. Docker just starting) can exceed 5 s.
+  expect: { timeout: 10_000 },
   workers: 1, // one shared test database — specs must not run at the same time
   use: {
     baseURL: 'http://localhost:5174',

@@ -22,6 +22,9 @@ export default function MyLeave({ user }) {
     }
   }, [user.id]);
 
+  // load() sets state only after awaiting the API (asynchronously), so this is the
+  // normal fetch-on-mount pattern, not the synchronous cascading render the rule targets.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function apply(payload) {

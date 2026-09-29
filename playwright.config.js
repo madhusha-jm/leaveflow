@@ -13,7 +13,8 @@ module.exports = defineConfig({
   workers: 1, // one shared test database — specs must not run at the same time
   use: {
     baseURL: 'http://localhost:5174',
-    channel: 'msedge', // the Edge that ships with Windows — no browser download needed
+    // Locally: the Edge that ships with Windows (no download). In CI (Linux): Playwright's Chromium.
+    channel: process.env.CI ? undefined : 'msedge',
     trace: 'retain-on-failure', // on failure: npx playwright show-trace test-results/…/trace.zip
   },
   webServer: [

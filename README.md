@@ -75,6 +75,23 @@ The API tests use a separate database, `leaveflow_test`, on the same Postgres as
 `.env`. It is created and migrated automatically, and emptied before every test —
 your development data is never touched. Docker's `leaveflow-pg` must be running.
 
+## CI/CD
+
+Every pull request runs five checks (`.github/workflows/ci.yml`); `main` only accepts a PR
+when all are green:
+
+| Check | What it proves |
+|---|---|
+| `test-api` | Jest unit + API tests against a throwaway Postgres; coverage report attached to the run |
+| `test-client` | Vitest component tests pass and the React app still builds |
+| `lint` | ESLint finds nothing in server or client (`npm run lint`) |
+| `audit` | No dependency has a known *critical* vulnerability |
+| `e2e` | Playwright: apply → approve → approved in a real browser |
+
+Every merge to `main` then publishes both images (`.github/workflows/release.yml`):
+`ghcr.io/madhusha-jm/leaveflow-api` and `ghcr.io/madhusha-jm/leaveflow-web`, tagged with the
+commit SHA and `main`.
+
 Demo accounts, all with password `password123`:
 
 | Email | Role |

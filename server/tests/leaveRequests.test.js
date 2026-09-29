@@ -39,6 +39,22 @@ describe('POST /api/leave-requests', () => {
     expect(res.status).toBe(400);
   });
 
+  test('refuses a request that crosses New Year with 400 (issue #25)', async () => {
+    const res = await as('ishara').post('/api/leave-requests', {
+      leave_type_id: ANNUAL, start_date: '2026-12-28', end_date: '2027-01-08',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/cannot cross New Year/);
+  });
+
+  test('accepts a request ending on 31 December', async () => {
+    const res = await as('ishara').post('/api/leave-requests', {
+      leave_type_id: ANNUAL, start_date: '2026-12-28', end_date: '2026-12-31',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.days).toBe(4);
+  });
+
   test('rejects a request that overlaps a PENDING one with 409', async () => {
     await apply('ishara'); // 9–13 March
     const res = await as('ishara').post('/api/leave-requests', {

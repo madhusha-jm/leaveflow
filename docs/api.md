@@ -67,6 +67,8 @@ two requests from the same person are handled one after the other — issues #23
 1. `leave_type_id`, `start_date`, `end_date` present and well-formed → else 400.
 2. `end_date >= start_date` → else 400.
 3. Span at most 30 calendar days → else 400.
+   Start and end in the same calendar year → else 400 ("make one ending 31 Dec and one starting 1 Jan";
+   each year has its own balance — issue #25).
 4. No overlap with the caller's own PENDING or APPROVED requests
    (`existing.start_date <= new.end_date AND existing.end_date >= new.start_date`) → else `409 OVERLAPPING_REQUEST`.
 5. Requested days ≤ available balance, where

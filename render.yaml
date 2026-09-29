@@ -37,11 +37,12 @@ services:
     buildCommand: cd client && npm ci && npm run build
     staticPublishPath: ./client/dist
     routes:
-      # If Render gave the API a different address (the name was taken), change this
-      # destination to the API's real URL in the dashboard: leaveflow-web → Redirects/Rewrites.
+      # Our API's real address. Render added "-zxnk" because leaveflow-api.onrender.com
+      # belongs to another account — pointing there would send our users' logins to a
+      # stranger. If the API is ever recreated, update this to its new URL.
       - type: rewrite
         source: /api/*
-        destination: https://leaveflow-api.onrender.com/api/*
+        destination: https://leaveflow-api-zxnk.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html

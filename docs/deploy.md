@@ -20,8 +20,10 @@ Two targets, as in the Field Guide's Phase 9:
    `leaveflow-db` (PostgreSQL), `leaveflow-api` (Web Service, Docker), `leaveflow-web` (Static Site).
 5. Click **Deploy Blueprint** / **Apply**. First build: ~5–8 minutes.
 6. Open **leaveflow-api** → wait for **Live**. Its URL is at the top, normally
-   `https://leaveflow-api.onrender.com`.
-   - If the URL is **different** (the name was taken, e.g. `leaveflow-api-x1y2.onrender.com`):
+   `https://leaveflow-api-<letters>.onrender.com`.
+   - Ours is `https://leaveflow-api-zxnk.onrender.com` (the plain name belongs to another
+     account). **Never leave `/api/*` pointing at a URL you don't own** — it would receive logins.
+   - If the URL is **different** (e.g. the API was recreated):
      open **leaveflow-web** → **Redirects/Rewrites** → edit the `/api/*` rule's destination to
      `https://<the real api URL>/api/*` → **Save**.
 7. Check the API: open `https://<api URL>/api/health` →

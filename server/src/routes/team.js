@@ -13,7 +13,8 @@ router.get('/requests', requireAuth, requireRole('MANAGER', 'HR_ADMIN'), async (
     `SELECT lr.*, u.name AS employee_name, lt.name AS leave_type,
             COALESCE((
               SELECT json_agg(json_build_object('name', ou.name, 'start_date', o.start_date,
-                                                'end_date', o.end_date, 'status', o.status)
+                                                'end_date', o.end_date, 'status', o.status,
+                                                'day_part', o.day_part)
                               ORDER BY o.start_date)
                 FROM leave_requests o
                 JOIN users ou ON ou.id = o.user_id

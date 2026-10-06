@@ -100,7 +100,7 @@ describe('US-14: who else on the team is off', () => {
     const res = await as('ruwan').get('/api/team/requests');
     const ishara = res.body.find((r) => r.employee_name === 'Ishara Fernando');
     expect(ishara.also_off).toEqual([
-      { name: 'Sahan Wickramasinghe', start_date: '2026-03-11', end_date: '2026-03-12', status: 'APPROVED' },
+      { name: 'Sahan Wickramasinghe', start_date: '2026-03-11', end_date: '2026-03-12', status: 'APPROVED', day_part: 'FULL' },
     ]);
   });
 

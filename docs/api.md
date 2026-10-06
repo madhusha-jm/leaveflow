@@ -225,13 +225,16 @@ and a React client (`client/`, Vite on port 5173) uses it: login, balances, appl
 with cancel, and an approvals inbox for managers and HR. Vite proxies `/api` to port 4000.
 Known gaps:
 
-- `days` excludes weekends and the public holidays in `server/src/lib/holidays.js`. That 2026
-  list is **provisional** (Q3): poya dates must be confirmed with HR, and moon-sighted holidays
-  (Ramazan, Hajj, Milad-un-Nabi, Deepavali) are not in it yet. The React form's day preview
-  counts Mon–Fri only; the server's number is the one stored.
-- A year with **no holiday list** can't be booked: `409 HOLIDAYS_NOT_LOADED`, and the server
-  prints a warning at startup if this year or next is missing (issue #26). **2027 is missing** —
-  HR must supply it before anyone can book 2027 leave.
+- **Capstone (US-15 – US-18) is built:** half days (`day_part`) and the `holidays` table, which HR
+  edits on the **Holidays** tab (`GET/POST/DELETE /holidays`). Migration 005 seeded it with the
+  2026 list that used to live in code.
+- `days` excludes weekends and the holidays in that table. The seeded 2026 list is still
+  **provisional** (Q3): poya dates must be confirmed with HR, and moon-sighted holidays
+  (Ramazan, Hajj, Milad-un-Nabi, Deepavali) aren't in it — HR can now add them in the app.
+  The React form's preview uses the same holidays; the server's number is the one stored.
+- A year with **no holidays at all** can't be booked: `409 HOLIDAYS_NOT_LOADED`, and the server
+  logs a warning at startup if this year or next is empty (issue #26). **2027 is empty** —
+  HR adds it on the Holidays tab; no developer needed.
 - The role inside a token is fixed for its 8-hour life; a role change takes effect at next login.
 - The client keeps the token in `localStorage` — simple, but readable by any script on the page.
   Acceptable for an internal MVP with no third-party scripts; revisit (httpOnly cookie) before launch.

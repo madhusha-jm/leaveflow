@@ -31,5 +31,12 @@ describe('App top bar', () => {
     render(<App />);
     expect(await screen.findByRole('button', { name: 'Approvals' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'My leave' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Holidays' })).not.toBeInTheDocument();
+  });
+
+  test('only HR gets the Holidays tab (US-17)', async () => {
+    me.current = { id: 3, name: 'Dilini Jayasuriya', role: 'HR_ADMIN' };
+    render(<App />);
+    expect(await screen.findByRole('button', { name: 'Holidays' })).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ process.env.PORT = process.env.PORT || '4001';
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   await db.query('TRUNCATE leave_requests, leave_balances RESTART IDENTITY CASCADE');
+  await db.query('DELETE FROM holidays WHERE created_by IS NOT NULL'); // keep the seeded list
   await db.end();
 
   require('../src/server');

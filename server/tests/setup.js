@@ -5,6 +5,8 @@ const pool = require('../src/db/pool');
 
 beforeEach(async () => {
   await pool.query('TRUNCATE leave_requests, leave_balances RESTART IDENTITY CASCADE');
+  // Holidays HR added during a test go; the seeded 2026 list (created_by NULL) stays.
+  await pool.query('DELETE FROM holidays WHERE created_by IS NOT NULL');
   // users and leave_types are seeded by the migrations, not truncated: every
   // test relies on the same Ishara / Ruwan / Dilini / Kasun / Nimali fixtures.
 });
@@ -23,6 +25,7 @@ const USERS = {
   sahan: 'sahan@ceylonroots.lk', // EMPLOYEE, reports to Ruwan (US-14)
 };
 const ANNUAL = 1; // leave_types seed: 1 Annual (14), 2 Casual (7), 3 Sick (7)
+const CASUAL = 2;
 const SICK = 3;
 
 // Logging in costs a bcrypt hash (~70 ms), so each test file logs in once per user.
@@ -48,6 +51,7 @@ function as(name) {
     get: (url) => call(name, 'get', url),
     post: (url, body) => call(name, 'post', url, body),
     patch: (url, body) => call(name, 'patch', url, body),
+    delete: (url) => call(name, 'delete', url),
   };
 }
 
@@ -62,4 +66,4 @@ async function apply(name = 'ishara', overrides = {}) {
   return res.body;
 }
 
-module.exports = { request, app, pool, USERS, ANNUAL, SICK, loginAs, as, apply };
+module.exports = { request, app, pool, USERS, ANNUAL, CASUAL, SICK, loginAs, as, apply };

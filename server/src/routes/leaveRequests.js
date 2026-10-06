@@ -11,6 +11,7 @@ const router = express.Router();
 router.use(requireAuth); // every route below knows req.user = { id, role }
 
 const STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
+const DAY_PARTS = ['FULL', 'MORNING', 'AFTERNOON']; // design D10
 const MAX_CALENDAR_DAYS = 30;
 const MAX_REASON_LENGTH = 500;
 
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
 // Create — checks in the order docs/api.md lists them: cheap validation first,
 // then overlap, then balance, and the write last.
 router.post('/', async (req, res) => {
-  const { leave_type_id, start_date, end_date, reason } = req.body || {};
+  const { leave_type_id, start_date, end_date, reason, day_part = 'FULL' } = req.body || {};
   const userId = req.user.id; // always from the token — a body user_id is ignored
 
   if (!leave_type_id || !start_date || !end_date) {
@@ -54,6 +55,14 @@ router.post('/', async (req, res) => {
   if (!isDate(start_date) || !isDate(end_date)) {
     throw httpError(400, 'VALIDATION_ERROR', 'start_date and end_date must be YYYY-MM-DD');
   }
+  if (!DAY_PARTS.includes(day_part)) {
+    throw httpError(400, 'VALIDATION_ERROR', 'day_part must be one of ' + DAY_PARTS.join(', '));
+  }
+  const halfDay = day_part !== 'FULL';
+  if (halfDay && start_date !== end_date) {
+    throw httpError(400, 'VALIDATION_ERROR',
+      'a half day is a single date — start_date and end_date must match');
+  }
   if (end_date < start_date) {
     throw httpError(400, 'VALIDATION_ERROR', 'end_date must be on or after start_date');
   }
@@ -67,10 +76,15 @@ router.post('/', async (req, res) => {
     throw httpError(400, 'VALIDATION_ERROR',
       'a request cannot cross New Year — make one ending 31 Dec and one starting 1 Jan');
   }
-  const days = leaveDays(start_date, end_date, holidaysBetween(start_date, end_date));
-  if (days === 0) {
-    throw httpError(400, 'VALIDATION_ERROR', 'the range contains only weekends and holidays');
+  const workingDays = leaveDays(start_date, end_date,
+    await holidaysBetween(pool, start_date, end_date));
+  if (workingDays === 0) {
+    throw httpError(400, 'VALIDATION_ERROR', halfDay
+      ? 'that date is a weekend or a public holiday'
+      : 'the range contains only weekends and holidays');
   }
+  // A half day is a single working date, so it costs 0.5 (US-16).
+  const days = halfDay ? 0.5 : workingDays;
   // Check-then-insert must be atomic: two requests arriving together would otherwise
   // both pass the overlap and balance checks before either is saved (issues #23, #24).
   // Locking the user's row makes a user's creates run one at a time; other users
@@ -80,16 +94,20 @@ router.post('/', async (req, res) => {
     await client.query('BEGIN');
     await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
+    // A MORNING and an AFTERNOON on the same date don't clash; any other
+    // overlapping pair does (design D12).
     const overlap = await client.query(
-      `SELECT id, status, start_date, end_date FROM leave_requests
+      `SELECT id, status, start_date, end_date, day_part FROM leave_requests
         WHERE user_id = $1 AND status IN ('PENDING', 'APPROVED')
           AND start_date <= $3 AND end_date >= $2
+          AND NOT (day_part <> 'FULL' AND $4::text <> 'FULL' AND day_part <> $4::text)
         LIMIT 1`,
-      [userId, start_date, end_date]);
+      [userId, start_date, end_date, day_part]);
     if (overlap.rowCount) {
       const o = overlap.rows[0];
+      const part = o.day_part === 'FULL' ? '' : `, ${o.day_part.toLowerCase()}`;
       throw httpError(409, 'OVERLAPPING_REQUEST',
-        `overlaps your ${o.status} request #${o.id} (${o.start_date} to ${o.end_date})`);
+        `overlaps your ${o.status} request #${o.id} (${o.start_date} to ${o.end_date}${part})`);
     }
 
     const year = Number(start_date.slice(0, 4));
@@ -104,9 +122,9 @@ router.post('/', async (req, res) => {
     }
 
     const { rows } = await client.query(
-      `INSERT INTO leave_requests (user_id, leave_type_id, start_date, end_date, days, reason)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [userId, Number(leave_type_id), start_date, end_date, days, reason?.trim() || null]);
+      `INSERT INTO leave_requests (user_id, leave_type_id, start_date, end_date, days, reason, day_part)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [userId, Number(leave_type_id), start_date, end_date, days, reason?.trim() || null, day_part]);
     await client.query('COMMIT');
     res.status(201).json(rows[0]);
   } catch (err) {

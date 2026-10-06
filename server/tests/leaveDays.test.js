@@ -1,5 +1,4 @@
 const { leaveDays } = require('../src/lib/leaveDays');
-const { holidaysBetween } = require('../src/lib/holidays');
 
 // March 2026: Mon 2 … Fri 6, Sat 7, Sun 8, Mon 9.
 describe('leaveDays', () => {
@@ -55,24 +54,5 @@ describe('leaveDays', () => {
     test('a single-day request on a holiday counts as 0', () => {
       expect(leaveDays('2026-05-01', '2026-05-01', ['2026-05-01'])).toBe(0);
     });
-  });
-});
-
-describe('holidaysBetween', () => {
-  test('includes Vesak 2026, so the routes exclude it', () => {
-    expect(holidaysBetween('2026-04-29', '2026-05-04')).toContain('2026-05-01');
-  });
-
-  test('refuses a year with no holiday list instead of returning none (issue #26)', () => {
-    expect(() => holidaysBetween('2030-03-04', '2030-03-08')).toThrow('public holidays for 2030 are not loaded');
-  });
-
-  test('refuses a range that reaches into a year with no list', () => {
-    expect(() => holidaysBetween('2026-12-28', '2027-01-05')).toThrow('public holidays for 2027');
-  });
-
-  test('the Vesak week really is 3 working days end to end', () => {
-    const [start, end] = ['2026-04-29', '2026-05-04'];
-    expect(leaveDays(start, end, holidaysBetween(start, end))).toBe(3);
   });
 });

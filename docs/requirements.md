@@ -158,7 +158,7 @@
   * **Given** Fri 1 May 2026 (Vesak) is in the holiday calendar
   * **When** Ishara applies for Annual leave from Wed 29 April to Mon 4 May 2026
   * **Then** the request is charged 3 days (Wed 29 and Thu 30 April, Mon 4 May — Fri 1 May is Vesak, Sat/Sun are the weekend)
-  * **And** a half day on a holiday or a weekend is refused with 400 NO_WORKING_DAYS
+  * **And** a half day on a holiday or a weekend is refused with 400 VALIDATION_ERROR (no working days)
 
 **Questions for Nadeesha**
 1. Can a half day be attached to a longer trip (e.g. Mon–Wed plus Thursday morning), or is it single-day only?

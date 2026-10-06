@@ -37,6 +37,9 @@ returns 200 when the API and database answer, 503 `{"status":"degraded"}` when t
 | PATCH  | /leave-requests/:id   | see below      | 200     | 400, 401, 403, 404, 409 |
 | GET    | /balances             | see below      | 200     | 400, 401, 403, 404      |
 | GET    | /team/requests        | MANAGER, HR_ADMIN | 200  | 401, 403                |
+| GET    | /holidays?year=YYYY   | any user       | 200     | 400, 401                |
+| POST   | /holidays             | HR_ADMIN       | 201     | 400, 401, 403, 409      |
+| DELETE | /holidays/:date       | HR_ADMIN       | 204     | 400, 401, 403, 404      |
 
 ### Visibility rules
 
@@ -76,6 +79,28 @@ two requests from the same person are handled one after the other — issues #23
 6. Insert with status `PENDING`. The pending days are reserved immediately (they reduce "available").
 
 `user_id` is always taken from the token, never from the body.
+
+### Half days (capstone, US-15/16)
+
+`POST /leave-requests` accepts an optional `day_part`: `"FULL"` (default), `"MORNING"` or `"AFTERNOON"`.
+
+- `MORNING`/`AFTERNOON` with `start_date ≠ end_date` → 400 `VALIDATION_ERROR` ("a half day is a single date").
+- Any other value → 400 `VALIDATION_ERROR`.
+- A half day on a weekend or holiday → 400 `VALIDATION_ERROR` (no working days), as for full days.
+- `days` is `0.5` for a half day; the balance check (rule 5) compares 0.5 with `available`.
+- Overlap (rule 4): a MORNING and an AFTERNOON on the same date don't overlap; everything else on the same date does.
+- Every request in responses now carries `day_part`.
+
+### Holidays (capstone, US-17/18)
+
+- `GET /holidays?year=2027` → `200 [{"date":"2027-01-02","name":"Duruthu Poya"}]`, sorted by date
+  (`[]` if none). `year` missing or not a number → 400.
+- `POST /holidays` body `{"date":"2027-01-02","name":"Duruthu Poya"}` → `201` with the saved row.
+  Bad date or empty name (max 100 chars) → 400; date already a holiday → `409 DUPLICATE_HOLIDAY`;
+  not HR_ADMIN → 403.
+- `DELETE /holidays/2027-01-02` → `204`; no such holiday → 404; not HR_ADMIN → 403.
+- Leave creation reads this table: a year with no holidays at all → `409 HOLIDAYS_NOT_LOADED` (as today).
+  Changing holidays never changes the `days` of requests that already exist.
 
 ### `GET /team/requests` — the approval inbox
 

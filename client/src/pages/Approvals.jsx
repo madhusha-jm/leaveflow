@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { prettyDate } from '../dates.js';
+import { requestDates } from '../dates.js';
 
 // US-7 approval inbox, US-8 approve/reject, US-4 see the balance before deciding.
 export default function Approvals({ user }) {
@@ -58,9 +58,7 @@ export default function Approvals({ user }) {
             <li className="card item" key={r.id}>
               <div>
                 <strong>{r.employee_name}</strong> · {r.leave_type} · {r.days} day(s)
-                <div className="muted small">
-                  {prettyDate(r.start_date)} → {prettyDate(r.end_date)}
-                </div>
+                <div className="muted small">{requestDates(r)}</div>
                 {r.reason && <div className="small">"{r.reason}"</div>}
                 <AlsoOff people={r.also_off} />
                 {bal && (
@@ -95,7 +93,7 @@ function AlsoOff({ people = [] }) {
       {people.map((p, i) => (
         <span key={i}>
           {i > 0 && '; '}
-          {p.name} ({prettyDate(p.start_date)} → {prettyDate(p.end_date)}
+          {p.name} ({requestDates(p)}
           {p.status === 'PENDING' ? ', pending' : ''})
         </span>
       ))}

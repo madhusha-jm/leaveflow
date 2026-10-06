@@ -3,6 +3,7 @@ import { api, getToken, setToken, setUnauthorizedHandler } from './api.js';
 import Login from './pages/Login.jsx';
 import MyLeave from './pages/MyLeave.jsx';
 import Approvals from './pages/Approvals.jsx';
+import Holidays from './pages/Holidays.jsx';
 
 const APPROVER_ROLES = ['MANAGER', 'HR_ADMIN'];
 const ROLE_LABEL = { EMPLOYEE: 'Employee', MANAGER: 'Manager', HR_ADMIN: 'HR admin' };
@@ -41,6 +42,7 @@ export default function App() {
   if (!user) return <Login onLogin={handleLogin} />;
 
   const canApprove = APPROVER_ROLES.includes(user.role);
+  const isHr = user.role === 'HR_ADMIN'; // US-17: only HR keeps the holiday calendar
 
   return (
     <div className="app">
@@ -55,6 +57,11 @@ export default function App() {
             <button className={page === 'approvals' ? 'active' : ''} onClick={() => setPage('approvals')}>
               Approvals
             </button>
+            {isHr && (
+              <button className={page === 'holidays' ? 'active' : ''} onClick={() => setPage('holidays')}>
+                Holidays
+              </button>
+            )}
           </nav>
         )}
         <div className="who">
@@ -63,7 +70,9 @@ export default function App() {
         </div>
       </header>
       <main>
-        {page === 'approvals' && canApprove ? <Approvals user={user} /> : <MyLeave user={user} />}
+        {page === 'approvals' && canApprove ? <Approvals user={user} />
+          : page === 'holidays' && isHr ? <Holidays />
+          : <MyLeave user={user} />}
       </main>
     </div>
   );

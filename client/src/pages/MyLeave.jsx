@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { prettyDate } from '../dates.js';
+import { requestDates } from '../dates.js';
 import ApplyLeaveForm from '../components/ApplyLeaveForm.jsx';
 import StatusBadge from './StatusBadge.jsx';
 
@@ -8,6 +8,7 @@ import StatusBadge from './StatusBadge.jsx';
 export default function MyLeave({ user }) {
   const [balances, setBalances] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
@@ -26,6 +27,15 @@ export default function MyLeave({ user }) {
   // normal fetch-on-mount pattern, not the synchronous cascading render the rule targets.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
+
+  // Public holidays this year and next, so the form's preview leaves them out (US-18).
+  // Only a preview: if this fails the server still counts correctly, so stay quiet.
+  useEffect(() => {
+    const year = new Date().getFullYear();
+    Promise.all([year, year + 1].map((y) => api(`/holidays?year=${y}`)))
+      .then((lists) => setHolidays(lists.flat()))
+      .catch(() => {});
+  }, []);
 
   async function apply(payload) {
     const created = await api('/leave-requests', { method: 'POST', body: payload });
@@ -54,7 +64,7 @@ export default function MyLeave({ user }) {
 
       <section>
         <h2>Apply for leave</h2>
-        <ApplyLeaveForm balances={balances} onSubmit={apply} />
+        <ApplyLeaveForm balances={balances} holidays={holidays} onSubmit={apply} />
       </section>
 
       <section>
@@ -89,9 +99,7 @@ function RequestList({ requests, onChanged }) {
             <div className="item-main">
               <div>
                 <strong>{r.leave_type}</strong> · {r.days} day(s)
-                <div className="muted small">
-                  {prettyDate(r.start_date)} → {prettyDate(r.end_date)}
-                </div>
+                <div className="muted small">{requestDates(r)}</div>
                 {r.reason && <div className="small">{r.reason}</div>}
               </div>
               <StatusBadge status={r.status} />

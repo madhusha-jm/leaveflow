@@ -15,9 +15,10 @@ const server = app.listen(PORT, (err) => {
   }
   logger.info(`LeaveFlow API on http://localhost:${PORT}`);
   const thisYear = new Date().getFullYear();
-  for (const y of missingYears([thisYear, thisYear + 1])) {
-    logger.warn(`no public holiday list for ${y} in src/lib/holidays.js — leave in ${y} can't be booked until HR adds it`);
-  }
+  missingYears(pool, [thisYear, thisYear + 1])
+    .then((years) => years.forEach((y) => logger.warn(
+      `no public holidays for ${y} in the holidays table — leave in ${y} can't be booked until HR adds them`)))
+    .catch((err) => logger.error({ err }, 'could not check the holiday calendar'));
 });
 
 // Ctrl+C (SIGINT) or a platform stop (SIGTERM): finish in-flight requests,

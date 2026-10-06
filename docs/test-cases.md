@@ -58,22 +58,25 @@ script, with screenshots reviewed by eye · Commit: `1a9cfac` · Where: the isol
 ### Capstone — half days and the holiday calendar (US-15 – US-18)
 
 Run after TC-20, on the same data (Ishara still has request #1 approved). Fill in **Actual** and **Pass?** as you go.
+
+**Run 2 — result: 11 / 11 PASS.** 6 Oct 2026 · Microsoft Edge driven by a Playwright script · commit `bd84bd1` ·
+on the isolated test stack (fresh data, so Ishara starts at Annual 14, not 11 — the expected *changes* are the same).
 The same journeys are automated in `server/tests/halfDays.test.js`, `server/tests/holidays.test.js`,
 `client/src/components/ApplyLeaveForm.test.jsx` and `e2e/approve-flow.spec.js`.
 
 | ID | Story | Steps | Expected | Actual | Pass? | Notes |
 |----|-------|-------|----------|--------|-------|-------|
-| TC-21 | US-15, US-16 | As Ishara: Annual, **Length → Morning only (½ day)**, Date **Mon 30 Nov 2026**, reason "Bank" → Apply | The End date box disappears when Morning is chosen. Preview "0.5 working day(s)". Green "sent for 0.5 day(s)". Listed as "Mon 30 Nov 2026 · morning", **PENDING**. Annual card drops by **0.5**, "0.5 pending" | | | |
-| TC-22 | US-15 (D12) | Same date, **Afternoon only** → Apply. Then the same date, **Morning only** again → Apply | Afternoon: accepted (morning + afternoon don't clash). Morning again: red "overlaps your PENDING request … morning)" | | | |
-| TC-23 | US-18 | Morning only on **Thu 24 Dec 2026** (Unduvap Poya) | Red "That's only weekends or public holidays — no leave needed."; **Apply** greyed out | | | |
-| TC-24 | US-16, US-4 | Log in as Ruwan → Approvals | Ishara's two half days show "Mon 30 Nov 2026 · morning" / "· afternoon", **0.5 day(s)** each. Approve the morning; Ishara's Annual card still shows the same available number, pending drops to 0.5 | | | |
-| TC-25 | US-18 | As Ishara: Annual, Full day(s), **Mon 21 Dec → Fri 25 Dec 2026** (don't apply) | Preview "3 working day(s)" and "Not charged: Unduvap Full Moon Poya (Thu 24 Dec 2026); Christmas Day (Fri 25 Dec 2026)" | | | |
-| TC-26 | US-17, NFR-2 | Look at the top bar as Ishara, then as Ruwan | No **Holidays** tab for either | | | |
-| TC-27 | US-17 | Log in as Dilini (HR) → **Holidays** | 16 holidays listed for 2026. Click **›** → 2027: red "No holidays for 2027 yet — nobody can book leave in 2027…" | | | |
-| TC-28 | US-17 | Still as Dilini: Date **21 Jan 2027**, Name "Duruthu Full Moon Poya" → **Add holiday** | Green "Added Duruthu Full Moon Poya on Thu 21 Jan 2027"; the page shows 2027 with it listed | | | |
-| TC-29 | US-17 | Add the same date again with any name | Red "2027-01-21 is already a holiday"; list unchanged | | | |
-| TC-30 | US-17, US-18 | As Ishara: Annual, **Wed 20 Jan → Fri 22 Jan 2027** → Apply. Then cancel it | Preview names Duruthu as not charged; green "sent for **2** day(s)" (before TC-28 this was refused: "public holidays for 2027 are not loaded yet") | | | |
-| TC-31 | US-17 | As Dilini: **Remove** Duruthu → OK | Gone from the 2027 list; the red "No holidays for 2027 yet" message is back | | | |
+| TC-21 | US-15, US-16 | As Ishara: Annual, **Length → Morning only (½ day)**, Date **Mon 30 Nov 2026**, reason "Bank" → Apply | The End date box disappears when Morning is chosen. Preview "0.5 working day(s)". Green "sent for 0.5 day(s)". Listed as "Mon 30 Nov 2026 · morning", **PENDING**. Annual card drops by **0.5**, "0.5 pending" | End date box hidden; preview "0.5 working day(s) · 14 Annual day(s) available"; "Request #1 sent for 0.5 day(s)"; listed "Mon 30 Nov 2026 · morning", PENDING; Annual 14 → **13.5** · 0.5 pending | **PASS** |  |
+| TC-22 | US-15 (D12) | Same date, **Afternoon only** → Apply. Then the same date, **Morning only** again → Apply | Afternoon: accepted (morning + afternoon don't clash). Morning again: red "overlaps your PENDING request … morning)" | Afternoon: "Request #2 sent for 0.5 day(s)"; morning again: "overlaps your PENDING request #1 (2026-11-30 to 2026-11-30, morning)" | **PASS** |  |
+| TC-23 | US-18 | Morning only on **Thu 24 Dec 2026** (Unduvap Poya) | Red "That's only weekends or public holidays — no leave needed."; **Apply** greyed out | "That's only weekends or public holidays — no leave needed."; Apply disabled | **PASS** |  |
+| TC-24 | US-16, US-4 | Log in as Ruwan → Approvals | Ishara's two half days show "Mon 30 Nov 2026 · morning" / "· afternoon", **0.5 day(s)** each. Approve the morning; Ishara's Annual card still shows the same available number, pending drops to 0.5 | Two items "0.5 day(s) · Mon 30 Nov 2026 · morning" / "· afternoon"; approved the morning → 1 left; Ishara: Annual 13 available · 0.5 pending | **PASS** |  |
+| TC-25 | US-18 | As Ishara: Annual, Full day(s), **Mon 21 Dec → Fri 25 Dec 2026** (don't apply) | Preview "3 working day(s)" and "Not charged: Unduvap Full Moon Poya (Thu 24 Dec 2026); Christmas Day (Fri 25 Dec 2026)" | "3 working day(s)"; "Not charged: Unduvap Full Moon Poya (Thu 24 Dec 2026); Christmas Day (Fri 25 Dec 2026)" | **PASS** |  |
+| TC-26 | US-17, NFR-2 | Look at the top bar as Ishara, then as Ruwan | No **Holidays** tab for either | No Holidays tab for Ishara or Ruwan | **PASS** |  |
+| TC-27 | US-17 | Log in as Dilini (HR) → **Holidays** | 16 holidays listed for 2026. Click **›** → 2027: red "No holidays for 2027 yet — nobody can book leave in 2027…" | 2026: 16 holidays; 2027: "No holidays for 2027 yet — nobody can book leave in 2027 until they are added." | **PASS** |  |
+| TC-28 | US-17 | Still as Dilini: Date **21 Jan 2027**, Name "Duruthu Full Moon Poya" → **Add holiday** | Green "Added Duruthu Full Moon Poya on Thu 21 Jan 2027"; the page shows 2027 with it listed | "Added Duruthu Full Moon Poya on Thu 21 Jan 2027."; listed under 2027 | **PASS** |  |
+| TC-29 | US-17 | Add the same date again with any name | Red "2027-01-21 is already a holiday"; list unchanged | "2027-01-21 is already a holiday"; still 1 item | **PASS** |  |
+| TC-30 | US-17, US-18 | As Ishara: Annual, **Wed 20 Jan → Fri 22 Jan 2027** → Apply. Then cancel it | Preview names Duruthu as not charged; green "sent for **2** day(s)" (before TC-28 this was refused: "public holidays for 2027 are not loaded yet") | "Not charged: Duruthu Full Moon Poya (Thu 21 Jan 2027)"; "Request #3 sent for 2 day(s)"; cancelled → CANCELLED | **PASS** |  |
+| TC-31 | US-17 | As Dilini: **Remove** Duruthu → OK | Gone from the 2027 list; the red "No holidays for 2027 yet" message is back | Duruthu gone; "No holidays for 2027 yet…" shown again | **PASS** |  |
 
 ## Not built yet — expected to fail, not bugs
 

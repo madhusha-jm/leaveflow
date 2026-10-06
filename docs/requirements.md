@@ -127,6 +127,46 @@
   * **Then** Ishara's request shows "Also off: Sahan Wickramasinghe" with Sahan's dates and status
   * **And** teammates whose leave doesn't overlap, cancelled/rejected requests, and other teams are not shown
 
+### Capstone — half-day leave and holiday calendar
+
+> Nadeesha: "Half our staff only need a morning off for the bank or a school meeting, but the
+> system makes them take a full day. And every year someone has to ask IT to type in the new
+> holidays — HR should be able to do that ourselves."
+
+* **US-15:** As an employee, I want to apply for a half day (morning or afternoon), so that I don't lose a full day of leave for a short appointment.
+  * **Given** Ishara has 14 Annual days available
+  * **When** she applies for a MORNING half day on Mon 9 March 2026
+  * **Then** the request is saved as PENDING with `days = 0.5` and part `MORNING`
+  * **And** her manager's inbox shows "Mon 9 Mar — morning (0.5 day)"
+  * **And** a half day is only allowed when the start and end date are the same day
+
+* **US-16:** As an employee, I want a half day to deduct exactly 0.5 from my balance, so that my remaining leave is always correct.
+  * **Given** Ishara has 14 Annual days and no other requests
+  * **When** her half-day request is PENDING
+  * **Then** her Annual card shows 0.5 pending and 13.5 available
+  * **And** after Ruwan approves it, it shows 0.5 used and 13.5 available
+  * **And** a half day is refused with 409 INSUFFICIENT_BALANCE when only 0 days are left, but allowed when exactly 0.5 is left
+
+* **US-17:** As an HR admin, I want to add, view and remove public holidays for any year, so that day counts stay correct without asking a developer to change the code.
+  * **Given** Dilini is logged in as HR_ADMIN
+  * **When** she adds "Duruthu Poya — Sat 2 January 2027"
+  * **Then** the holiday is saved and appears in the 2027 holiday list
+  * **And** employees can now apply for leave in 2027 (no more 409 HOLIDAYS_NOT_LOADED)
+  * **And** adding the same date twice is refused with 409, and employees and managers get 403 if they try to add or remove holidays
+
+* **US-18:** As an employee, I want public holidays and weekends left out of my leave count, so that I'm only charged for days I would really have worked.
+  * **Given** Fri 1 May 2026 (Vesak) is in the holiday calendar
+  * **When** Ishara applies for Annual leave from Wed 29 April to Mon 4 May 2026
+  * **Then** the request is charged 3 days (Wed 29 and Thu 30 April, Mon 4 May — Fri 1 May is Vesak, Sat/Sun are the weekend)
+  * **And** a half day on a holiday or a weekend is refused with 400 VALIDATION_ERROR (no working days)
+
+**Questions for Nadeesha**
+1. Can a half day be attached to a longer trip (e.g. Mon–Wed plus Thursday morning), or is it single-day only?
+2. What are the official morning and afternoon times? (Matters if we later show cover times to managers.)
+3. If HR adds a new holiday that falls inside an already-approved request, should we refund the day automatically?
+4. Do half days apply to all leave types, or only Annual and Casual (not Sick)?
+5. Who else besides HR should be allowed to edit the holiday calendar?
+
 ---
 
 ## 8. Requirements Hidden in Nadeesha's Follow-up (Your Turn — Lab 2)
